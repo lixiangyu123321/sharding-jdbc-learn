@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.lix.mycatdemo.mapper.OrderMapper">
+
+
+    <select id="selectByUserId" resultType="org.lix.mycatdemo.dao.OrderDO">
+        select *
+        from t_order
+        where
+            order_id in
+            <if test="userId != null and userId.size() > 0">
+                <foreach collection="userId" item="item" separator="," open="(" close=")">
+                    #{item}
+                </foreach>
+            </if>
+    </select>
+</mapper>
