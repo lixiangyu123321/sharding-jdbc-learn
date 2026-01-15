@@ -75,6 +75,7 @@
             <version>4.1.1</version> <!-- 4.x最新稳定版，阿里云仓库必存在 -->
         </dependency>
 
+
         <!-- 如需分布式事务，补充 -->
         <!-- Source: https://mvnrepository.com/artifact/org.apache.shardingsphere/shardingsphere-jdbc-core-spring-boot-starter -->
 <!--        <dependency>-->
