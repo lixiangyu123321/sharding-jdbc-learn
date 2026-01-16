@@ -1,6 +1,27 @@
 spring:
   application:
     name: sharding-jdbc-demo
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+  config:
+    import:
+      - nacos:${spring.application.name}-${spring.profiles.active}.yaml
+
+  cloud:
+    nacos:
+      config:
+        server-addr: ${NACOS_SERVER_ADDR:localhost:8848}
+        # 全局namespace
+        namespace: ${NACOS_NAMESPACE:e1560bee-1195-4d9a-b007-1d142af729e9}
+        file-extension: yaml
+        # 全局默认的group
+        group: ${NACOS_CONFIG_GROUP:DEFAULT_GROUP}
+        enabled: ${NACOS_CONFIG_ENABLED:true}
+        refresh-enabled: true
+        import-check:
+          enabled: true
+        timeout: ${NACOS_TIMEOUT:3000}
 
   shardingsphere:
     datasource:
