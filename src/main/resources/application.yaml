@@ -23,91 +23,91 @@ spring:
           enabled: true
         timeout: ${NACOS_TIMEOUT:3000}
 
-  shardingsphere:
-    datasource:
-      names: order-db1, order-db2, slave1, slave2
-      order-db1:
-        type: com.zaxxer.hikari.HikariDataSource
-        driver-class-name: com.mysql.cj.jdbc.Driver
-        # 核心修改：url → jdbc-url（HikariCP 4.0.3 必需）
-        jdbc-url: jdbc:mysql://localhost:3307/order_db
-        username: root
-        password: 123456
-        # Hikari 连接池参数（可选，兜底）
-        hikari:
-          maximum-pool-size: 10
-          minimum-idle: 2
-          connection-timeout: 30000
-      order-db2:
-        type: com.zaxxer.hikari.HikariDataSource
-        driver-class-name: com.mysql.cj.jdbc.Driver
-        # 核心修改：url → jdbc-url（HikariCP 4.0.3 必需）
-        jdbc-url: jdbc:mysql://localhost:3307/order_db_1
-        username: root
-        password: 123456
-        # Hikari 连接池参数（可选，兜底）
-        hikari:
-          maximum-pool-size: 10
-          minimum-idle: 2
-          connection-timeout: 30000
-      slave1:
-        type: com.zaxxer.hikari.HikariDataSource
-        driver-class-name: com.mysql.cj.jdbc.Driver
-        # 核心修改：url → jdbc-url（HikariCP 4.0.3 必需）
-        jdbc-url: jdbc:mysql://localhost:3308/order_db
-        username: root
-        password: 123456
-        # Hikari 连接池参数（可选，兜底）
-        hikari:
-          maximum-pool-size: 10
-          minimum-idle: 2
-          connection-timeout: 30000
-      slave2:
-        type: com.zaxxer.hikari.HikariDataSource
-        driver-class-name: com.mysql.cj.jdbc.Driver
-        # 核心修改：url → jdbc-url（HikariCP 4.0.3 必需）
-        jdbc-url: jdbc:mysql://localhost:3308/order_db_1
-        username: root
-        password: 123456
-        # Hikari 连接池参数（可选，兜底）
-        hikari:
-          maximum-pool-size: 10
-          minimum-idle: 2
-          connection-timeout: 30000
-
-    sharding:
-      # 读写分离配置 - 必须在 sharding 下配置
-      master-slave-rules:
-        ms1:
-          master-data-source-name: order-db1
-          slave-data-source-names: slave1
-          load-balance-algorithm-type: round_robin
-        ms2:
-          master-data-source-name: order-db2
-          slave-data-source-names: slave2
-          load-balance-algorithm-type: round_robin
-      tables:
-        t_order:
-#         分片策略 - actual-data-nodes 必须引用主从数据源组名称（ms1, ms2）
-          actual-data-nodes: ms${1..2}.t_order_${1..2}
-          key-generator:
-            column: order_id
-            type: SNOWFLAKE
-#            props:
-#              worker.id: 1
-          table-strategy:
-            inline:
-              sharding-column: order_id
-              algorithm-expression: t_order_$->{order_id % 2 + 1}
-#        分库策略
-          database-strategy:
-            inline:
-              sharding-column: user_id
-              algorithm-expression: ms$->{user_id % 2 + 1}
-      ### XXX 广播表可以配置多个，逗号分隔
-      broadcast-tables: t_dict #XXX 实现广播，其实与路由最大的区别是insert操作会广播，配置了路由协议的不会广播
-    props:
-      sql-show: true
+#  shardingsphere:
+#    datasource:
+#      names: order-db1, order-db2, slave1, slave2
+#      order-db1:
+#        type: com.zaxxer.hikari.HikariDataSource
+#        driver-class-name: com.mysql.cj.jdbc.Driver
+#        # 核心修改：url → jdbc-url（HikariCP 4.0.3 必需）
+#        jdbc-url: jdbc:mysql://localhost:3307/order_db
+#        username: root
+#        password: 123456
+#        # Hikari 连接池参数（可选，兜底）
+#        hikari:
+#          maximum-pool-size: 10
+#          minimum-idle: 2
+#          connection-timeout: 30000
+#      order-db2:
+#        type: com.zaxxer.hikari.HikariDataSource
+#        driver-class-name: com.mysql.cj.jdbc.Driver
+#        # 核心修改：url → jdbc-url（HikariCP 4.0.3 必需）
+#        jdbc-url: jdbc:mysql://localhost:3307/order_db_1
+#        username: root
+#        password: 123456
+#        # Hikari 连接池参数（可选，兜底）
+#        hikari:
+#          maximum-pool-size: 10
+#          minimum-idle: 2
+#          connection-timeout: 30000
+#      slave1:
+#        type: com.zaxxer.hikari.HikariDataSource
+#        driver-class-name: com.mysql.cj.jdbc.Driver
+#        # 核心修改：url → jdbc-url（HikariCP 4.0.3 必需）
+#        jdbc-url: jdbc:mysql://localhost:3308/order_db
+#        username: root
+#        password: 123456
+#        # Hikari 连接池参数（可选，兜底）
+#        hikari:
+#          maximum-pool-size: 10
+#          minimum-idle: 2
+#          connection-timeout: 30000
+#      slave2:
+#        type: com.zaxxer.hikari.HikariDataSource
+#        driver-class-name: com.mysql.cj.jdbc.Driver
+#        # 核心修改：url → jdbc-url（HikariCP 4.0.3 必需）
+#        jdbc-url: jdbc:mysql://localhost:3308/order_db_1
+#        username: root
+#        password: 123456
+#        # Hikari 连接池参数（可选，兜底）
+#        hikari:
+#          maximum-pool-size: 10
+#          minimum-idle: 2
+#          connection-timeout: 30000
+#
+#    sharding:
+#      # 读写分离配置 - 必须在 sharding 下配置
+#      master-slave-rules:
+#        ms1:
+#          master-data-source-name: order-db1
+#          slave-data-source-names: slave1
+#          load-balance-algorithm-type: round_robin
+#        ms2:
+#          master-data-source-name: order-db2
+#          slave-data-source-names: slave2
+#          load-balance-algorithm-type: round_robin
+#      tables:
+#        t_order:
+##         分片策略 - actual-data-nodes 必须引用主从数据源组名称（ms1, ms2）
+#          actual-data-nodes: ms${1..2}.t_order_${1..2}
+#          key-generator:
+#            column: order_id
+#            type: SNOWFLAKE
+##            props:
+##              worker.id: 1
+#          table-strategy:
+#            inline:
+#              sharding-column: order_id
+#              algorithm-expression: t_order_$->{order_id % 2 + 1}
+##        分库策略
+#          database-strategy:
+#            inline:
+#              sharding-column: user_id
+#              algorithm-expression: ms$->{user_id % 2 + 1}
+#      ### XXX 广播表可以配置多个，逗号分隔
+#      broadcast-tables: t_dict #XXX 实现广播，其实与路由最大的区别是insert操作会广播，配置了路由协议的不会广播
+#    props:
+#      sql-show: true
 
 
 server:
@@ -122,3 +122,10 @@ mybatis:
 
 # 关键：禁用 Spring Boot 自带的数据源自动配置（避免冲突）
 #spring.autoconfigure.exclude: org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration
+
+namespace:
+  dataId: namespace-id.properties
+  group: DEFAULT_GROUP
+sharding-JDBC:
+  dataId: sharding-JDBC.yaml
+  group: DEFAULT_GROUP

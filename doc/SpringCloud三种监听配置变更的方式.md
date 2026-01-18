@@ -1,3 +1,4 @@
+```java
 package org.lix.mycatdemo.nacos.service;
 
 import com.alibaba.cloud.nacos.NacosConfigManager;
@@ -14,6 +15,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.PostConstruct;
 import java.util.concurrent.Executor;
 
 @Slf4j
@@ -36,8 +38,8 @@ public class TestConfigService implements ApplicationListener<RefreshEvent> {
      * 使用 @PostConstruct 注册监听器，但添加延迟和重试机制
      * 确保 NacosConfigManager 已经完全初始化
      */
-    // @PostConstruct
-    public void inite() {
+    @PostConstruct
+    public void init() {
         // 延迟注册，确保 NacosConfigManager 已初始化
         new Thread(() -> {
             try {
@@ -54,17 +56,20 @@ public class TestConfigService implements ApplicationListener<RefreshEvent> {
     /**
      * 监听 ContextRefreshedEvent 事件，在应用完全启动后注册监听器
      */
-//    @EventListener
-//    public void onContextRefreshed(ContextRefreshedEvent event) {
-//        // 确保只执行一次（避免父子容器重复执行）
-//        if (event.getApplicationContext().getParent() != null) {
-//            return;
-//        }
-//
-//        if (!listenerRegistered) {
-//            registerNacosListener();
-//        }
-//    }
+    @EventListener
+    public void onContextRefreshed(ContextRefreshedEvent event) {
+        // 确保只执行一次（避免父子容器重复执行）
+        if (event.getApplicationContext().getParent() != null) {
+            return;
+        }
+        
+        if (!listenerRegistered) {
+            registerNacosListener();
+        }
+    }
+
+    @Autowired
+    private ConfigService configService;
 
     /**
      * 注册 Nacos 配置监听器
@@ -163,3 +168,5 @@ public class TestConfigService implements ApplicationListener<RefreshEvent> {
         System.out.println("变化的配置值：" + event.getSource());
     }
 }
+
+```

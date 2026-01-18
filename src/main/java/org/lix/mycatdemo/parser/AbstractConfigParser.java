@@ -1,5 +1,7 @@
 package org.lix.mycatdemo.parser;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -7,6 +9,7 @@ import java.util.Map;
 /**
  * 抽象类
  */
+@Slf4j
 public abstract class AbstractConfigParser implements ConfigParser {
 
     @Override

@@ -3,6 +3,7 @@ package org.lix.mycatdemo.parser;
 import com.alibaba.nacos.api.utils.StringUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.MapUtils;
 import org.yaml.snakeyaml.Yaml;
 
@@ -10,6 +11,7 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+@Slf4j
 public class YamlConfigParser extends AbstractConfigParser{
 
     private static final List<ConfigFileTypeEnum> CONFIG_TYPES = Lists.newArrayList(ConfigFileTypeEnum.YAML, ConfigFileTypeEnum.YML);
@@ -54,17 +56,16 @@ public class YamlConfigParser extends AbstractConfigParser{
             // 按照层级关系逐一构建键名
             String fullKey = genFullKey(prefix, k);
             if (v instanceof Map) {
-                flatMap(result, (Map<String, Object>) v, fullKey);
+                flatMap((Map<String, Object>) v, result, fullKey);
                 return;
             } else if (v instanceof Collection) {
                 int count = 0;
                 for (Object obj : (Collection<Object>) v) {
                     String kk = "[" + (count++) + "]";
-                    flatMap(result, Collections.singletonMap(kk, obj), fullKey);
+                    flatMap(Collections.singletonMap(kk, obj), result, fullKey);
                 }
                 return;
             }
-
             result.put(fullKey, v);
         });
     }

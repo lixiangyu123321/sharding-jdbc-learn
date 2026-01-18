@@ -35,7 +35,7 @@ public class PropertiesConfigParser extends AbstractConfigParser {
 
         Map<String, Object> result = Maps.newHashMap();
         properties.forEach((k, v) -> {
-            if(k.toString().startsWith(prefix)){
+            if(prefix == null ||  k.toString().startsWith(prefix)){
                 result.put(k.toString(), v);
             }
         });

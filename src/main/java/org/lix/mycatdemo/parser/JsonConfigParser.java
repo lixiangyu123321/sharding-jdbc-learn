@@ -62,13 +62,13 @@ public class JsonConfigParser extends AbstractConfigParser {
             // 按照层级关系逐一构建键名
             String fullKey = genFullKey(prefix, k);
             if (v instanceof Map) {
-                flatMap(result, (Map<String, Object>) v, fullKey);
+                flatMap((Map<String, Object>) v, result, fullKey);
                 return;
             } else if (v instanceof Collection) {
                 int count = 0;
                 for (Object obj : (Collection<Object>) v) {
                     String kk = "[" + (count++) + "]";
-                    flatMap(result, Collections.singletonMap(kk, obj), fullKey);
+                    flatMap(Collections.singletonMap(kk, obj), result, fullKey);
                 }
                 return;
             }
