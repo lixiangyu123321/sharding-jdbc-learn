@@ -39,3 +39,13 @@ create table `t_order_2` (
                              `status` varchar(20) not null comment '状态',
                              primary key (`order_id`)
 )engine = InnoDB comment '订单表2';
+
+use order_db;
+
+delete from t_order_1 where status = 'test';
+delete from t_order_2 where status = 'test';
+
+use order_db_1;
+
+delete from t_order_1 where status = 'test';
+delete from t_order_2 where status = 'test';

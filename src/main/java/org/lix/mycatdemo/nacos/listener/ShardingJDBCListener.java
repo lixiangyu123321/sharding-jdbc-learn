@@ -1,6 +1,7 @@
 package org.lix.mycatdemo.nacos.listener;
 
 import com.alibaba.cloud.commons.lang.StringUtils;
+import com.alibaba.druid.pool.DruidDataSource;
 import com.alibaba.nacos.api.config.ConfigService;
 import com.alibaba.nacos.api.config.listener.Listener;
 import com.google.common.collect.Sets;
@@ -14,11 +15,13 @@ import org.apache.shardingsphere.api.config.sharding.ShardingRuleConfiguration;
 import org.apache.shardingsphere.api.config.sharding.TableRuleConfiguration;
 import org.apache.shardingsphere.api.config.sharding.strategy.InlineShardingStrategyConfiguration;
 import org.apache.shardingsphere.shardingjdbc.api.ShardingDataSourceFactory;
+import org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource;
 import org.lix.mycatdemo.nacos.config.DynamicConfigManager;
 import org.lix.mycatdemo.parser.ConfigFileTypeEnum;
 import org.lix.mycatdemo.parser.ConfigParserHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
+import org.springframework.beans.factory.support.DefaultSingletonBeanRegistry;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ContextRefreshedEvent;
@@ -28,6 +31,7 @@ import org.springframework.util.CollectionUtils;
 
 import javax.annotation.Resource;
 import javax.sql.DataSource;
+import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
@@ -89,6 +93,7 @@ public class ShardingJDBCListener {
                 public void receiveConfigInfo(String configContent) {
                     // 加锁：避免多线程同时刷新数据源
                     synchronized (refreshLock) {
+                        DataSource oldDataSource = null;
                         try {
                             log.info("===== 收到 Nacos 配置变化通知 =====");
                             log.info("{}", configContent);
@@ -132,7 +137,7 @@ public class ShardingJDBCListener {
                             }
 
                             // 3. 先保存旧数据源引用（在注册新数据源之前）
-                            DataSource oldDataSource = getOldShardingDataSource();
+                            oldDataSource = getOldShardingDataSource();
 
                             // 4. 创建新的 ShardingDataSource
                             DataSource newShardingDataSource = createNewShardingDataSource(flatConfigMap, actualDataSources, shardingRuleConfig);
@@ -147,20 +152,21 @@ public class ShardingJDBCListener {
                             // 7. 刷新 MyBatis 相关组件，使其使用新数据源
                             // 关键：MyBatis 的 SqlSessionFactory 和 SqlSessionTemplate 在创建时绑定了数据源引用
                             // 即使数据源 Bean 已更新，这些组件仍可能使用旧引用，需要刷新
-                            refreshMyBatisComponents(newShardingDataSource);
-                            
-                            // 8. 不主动关闭旧数据源，让它自然回收（GC）
-                            // 原因：主动关闭可能导致正在进行的操作失败
-                            // 新数据源已经注册，旧数据源在没有引用后会被 GC 自动回收
-                            log.info("旧数据源将不主动关闭，等待 GC 自动回收（新数据源已注册，旧数据源将自然过期）");
-                            // scheduleOldDataSourceCleanup(oldDataSource);  // 暂时禁用主动关闭
+
+                            if(!hasActiveConnections(oldDataSource)) {
+                                // XXX 应该在刷新MyBatis配置的时候检查旧数据源是否有活跃连接，如果没有，立即切换并将旧数据源的关闭放入异步任务中处理
+                                refreshMyBatisComponents(newShardingDataSource);
+                            }
+
+                            // 主动关闭旧数据源
+                            log.info("主动关闭旧数据源");
+                            scheduleOldDataSourceCleanup(oldDataSource);
 
                             log.info("通用 Sharding-JDBC 4.1.1 版本数据源刷新成功，包含 {} 个数据源，{} 个分片表",
                                     actualDataSources.size(), shardingRuleConfig.getTableRuleConfigs().size());
                         } catch (Exception e) {
                             log.error("刷新通用 Sharding-JDBC 数据源失败", e);
-                            // 不抛出异常，避免影响其他功能
-                            log.error("配置刷新失败，将使用原有配置继续运行");
+                            // TODO 这里应该将try-catch块拆开，如果新数据源配置失败，使用旧的数据源
                         }
                     }
                 }
@@ -620,8 +626,8 @@ public class ShardingJDBCListener {
         new Thread(() -> {
             try {
                 // 等待30秒，让所有正在进行的操作完成（包括事务等长时间操作）
-                log.info("延迟关闭旧数据源，等待30秒让所有正在进行的操作完成...");
-                Thread.sleep(30000);
+                log.info("延迟关闭旧数据源，等待5秒让所有正在进行的操作完成...");
+                Thread.sleep(5000);
                 
                 // 检查数据源是否已经被关闭
                 if (isDataSourceClosed(oldDataSource)) {
@@ -633,7 +639,7 @@ public class ShardingJDBCListener {
                 if (hasActiveConnections(oldDataSource)) {
                     log.warn("旧数据源仍有活跃连接，继续等待...");
                     // 再等待30秒
-                    Thread.sleep(30000);
+                    Thread.sleep(5000);
                 }
                 
                 // 再次检查是否已经被关闭
@@ -645,7 +651,7 @@ public class ShardingJDBCListener {
                 // 关闭旧数据源
                 closeDataSource(oldDataSource);
                 
-                // 尝试移除 Spring Bean（如果还存在）
+                // XXX 二次移除
                 removeOldShardingDataSourceBean();
                 
                 log.info("旧数据源已成功关闭");
@@ -664,26 +670,30 @@ public class ShardingJDBCListener {
     private boolean isDataSourceClosed(DataSource dataSource) {
         if (dataSource instanceof HikariDataSource) {
             return ((HikariDataSource) dataSource).isClosed();
-        } else if (dataSource instanceof org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource) {
+        } else if (dataSource instanceof ShardingDataSource) {
             // 对于 ShardingDataSource，检查其内部数据源是否都已关闭
             try {
-                org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource shardingDs =
-                        (org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource) dataSource;
+                ShardingDataSource shardingDs = (ShardingDataSource) dataSource;
                 Map<String, DataSource> dataSourceMap = shardingDs.getDataSourceMap();
+                // ShardingDataSource 的 所有管理的DataSource都被关闭
                 if (dataSourceMap != null) {
                     for (DataSource ds : dataSourceMap.values()) {
                         if (ds instanceof HikariDataSource && !((HikariDataSource) ds).isClosed()) {
-                            return false; // 至少有一个数据源未关闭
+                            return false;
+                        }
+                        // TODO 扩展其他数据库连接池
+                        if(ds instanceof DruidDataSource && !((DruidDataSource) ds).isClosed()){
+                            return false;
                         }
                     }
                 }
-                return true; // 所有数据源都已关闭
+                return true;
             } catch (Exception e) {
                 log.debug("检查 ShardingDataSource 关闭状态失败: {}", e.getMessage());
-                return false; // 无法确定，假设未关闭
+                return false;
             }
         }
-        return false; // 无法确定，假设未关闭
+        return false;
     }
 
     /**
@@ -702,28 +712,27 @@ public class ShardingJDBCListener {
                 return activeConnections > 0;
             } catch (Exception e) {
                 log.debug("获取活跃连接数失败: {}", e.getMessage());
-                return false; // 无法确定，假设没有活跃连接
+                return false;
             }
-        } else if (dataSource instanceof org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource) {
+        } else if (dataSource instanceof ShardingDataSource) {
             // 对于 ShardingDataSource，检查其内部所有数据源
             try {
-                org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource shardingDs =
-                        (org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource) dataSource;
+                ShardingDataSource shardingDs = (ShardingDataSource) dataSource;
                 Map<String, DataSource> dataSourceMap = shardingDs.getDataSourceMap();
                 if (dataSourceMap != null) {
                     for (DataSource ds : dataSourceMap.values()) {
                         if (hasActiveConnections(ds)) {
-                            return true; // 至少有一个数据源有活跃连接
+                            return true;
                         }
                     }
                 }
-                return false; // 所有数据源都没有活跃连接
+                return false;
             } catch (Exception e) {
                 log.debug("检查 ShardingDataSource 活跃连接失败: {}", e.getMessage());
-                return false; // 无法确定，假设没有活跃连接
+                return false;
             }
         }
-        return false; // 无法确定，假设没有活跃连接
+        return false;
     }
 
     /**
@@ -758,9 +767,8 @@ public class ShardingJDBCListener {
                 // destroySingleton 会触发 Bean 的销毁回调，导致数据源被关闭
                 try {
                     // 使用反射直接移除单例，避免触发销毁回调
-                    java.lang.reflect.Method removeSingletonMethod = 
-                        org.springframework.beans.factory.support.DefaultSingletonBeanRegistry.class
-                            .getDeclaredMethod("removeSingleton", String.class);
+                    Method removeSingletonMethod =
+                        DefaultSingletonBeanRegistry.class.getDeclaredMethod("removeSingleton", String.class);
                     removeSingletonMethod.setAccessible(true);
                     removeSingletonMethod.invoke(beanFactory, SHARDING_DATASOURCE_BEAN_NAME);
                     log.debug("已移除旧数据源单例 Bean 注册（使用反射，避免触发销毁回调）");
@@ -869,9 +877,8 @@ public class ShardingJDBCListener {
                 } else {
                     log.debug("Hikari 数据源已经关闭，跳过");
                 }
-            } else if (dataSource instanceof org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource) {
-                org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource shardingDs =
-                        (org.apache.shardingsphere.shardingjdbc.jdbc.core.datasource.ShardingDataSource) dataSource;
+            } else if (dataSource instanceof ShardingDataSource) {
+                ShardingDataSource shardingDs = (ShardingDataSource) dataSource;
                 // 递归关闭所有实际数据源
                 try {
                     Map<String, DataSource> dataSourceMap = shardingDs.getDataSourceMap();

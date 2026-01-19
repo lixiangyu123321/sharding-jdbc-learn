@@ -79,7 +79,7 @@ spring:
           database-strategy:
             inline:
               sharding-column: user_id
-              algorithm-expression: ms$->{user_id % 2 + 1}
+              algorithm-expression: ms$->{1}
       ### XXX 广播表可以配置多个，逗号分隔
       broadcast-tables: t_dict #XXX 实现广播，其实与路由最大的区别是insert操作会广播，配置了路由协议的不会广播
     props:
