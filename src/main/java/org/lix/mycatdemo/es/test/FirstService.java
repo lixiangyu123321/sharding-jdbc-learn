@@ -20,14 +20,7 @@ public class FirstService {
     }
 
     public void test(){
-        esClient.search(s -> s
-                .index("products")
-                .query(q -> q
-                        .term(t -> t
-                                .field("name")
-                                .value(v -> v.stringValue("bicycle"))
-                        )),
-                Product.class);
+
 
     }
 }

@@ -113,6 +113,25 @@ spring:
 server:
   port: 8080
 
+# 日志配置
+logging:
+  config: classpath:logback-spring.xml
+  level:
+    root: INFO
+    org.lix.mycatdemo: DEBUG
+    org.springframework: INFO
+    org.apache.shardingsphere: INFO
+  file:
+    # Windows 使用项目目录下的 logs 文件夹，Linux 使用 /var/log/app
+    # 可通过环境变量 LOG_HOME 覆盖
+    path: ${LOG_HOME:${user.dir}/logs}
+    name: ${logging.file.path}/application.log
+
+# 日志生产者配置（用于生成测试日志）
+log:
+  producer:
+    enabled: ${LOG_PRODUCER_ENABLED:false}  # 默认关闭，需要时设置为 true
+
 mybatis:
   mapper-locations: classpath:mapper/*.xml
   type-aliases-package: org.lix.mycatdemo.entity

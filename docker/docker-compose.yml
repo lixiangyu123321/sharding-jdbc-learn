@@ -72,6 +72,18 @@ volumes:
       type: none
       o: bind
       device: E:\docker-data\kibana\kibana
+  logstash-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: E:\docker-data\logstash
+  filebeat-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: E:\docker-data\filebeat
 
 services:
   # 1. MySQL 主库
@@ -254,7 +266,60 @@ services:
       - es-node1
       - es-node2  # 保证 Kibana 在 ES 节点后启动
 
-  # 9. RabbitMQ 节点1
+  # 9. Logstash 服务
+  logstash:
+    image: logstash:7.17.9  # 版本必须和 ES 一致！
+    container_name: logstash
+    restart: always
+    networks:
+      - docker-cluster-network
+    ports:
+      - "5044:5044"  # Beats 输入端口
+      - "9600:9600"  # Logstash API 端口
+    volumes:
+      - logstash-data:/usr/share/logstash/data
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    environment:
+      - LS_JAVA_OPTS=-Xmx512m -Xms512m
+      - XPACK_MONITORING_ENABLED=false
+    depends_on:
+      - es-node1
+      - es-node2
+
+  # 10. Filebeat 服务
+  filebeat:
+    image: docker.elastic.co/beats/filebeat:7.17.9  # 版本必须和 ES 一致！
+    container_name: filebeat
+    restart: always
+    user: root  # 需要 root 权限读取日志文件
+    networks:
+      - docker-cluster-network
+    volumes:
+      - filebeat-data:/usr/share/filebeat/data
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      # 挂载应用日志目录（Windows 需要绝对路径）
+      # Windows: 使用项目根目录的 logs 文件夹挂载到容器的 /var/log/app
+      # Linux: 使用 /var/log/app 或项目目录下的 logs 文件夹
+      - ../logs:/var/log/app:ro  # 挂载项目根目录下的 logs 文件夹
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro  # 可选：收集 Docker 容器日志
+      - /var/run/docker.sock:/var/run/docker.sock:ro  # 可选：Docker API
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es-node1:9200,http://es-node2:9200
+      - LOGSTASH_HOSTS=logstash:5044
+    # 修复配置文件权限问题（Filebeat 要求配置文件只能由所有者写入）
+    # 由于 Windows 挂载的文件权限是 777，需要在启动前修复
+    command: >
+      sh -c "
+        chmod 644 /usr/share/filebeat/filebeat.yml &&
+        filebeat -e -strict.perms=false
+      "
+    depends_on:
+      - logstash
+      - es-node1
+      - es-node2
+
+  # 11. RabbitMQ 节点1
   rabbitmq-node1:
     image: rabbitmq:3.12-management-alpine
     container_name: rabbitmq-node1
@@ -272,7 +337,7 @@ services:
       - rabbitmq-data-1:/var/lib/rabbitmq
     privileged: true
 
-  # 10. RabbitMQ 节点2
+  # 12. RabbitMQ 节点2
   rabbitmq-node2:
     image: rabbitmq:3.12-management-alpine
     container_name: rabbitmq-node2
