@@ -1,0 +1,9 @@
+# kibana/config/kibana.yml 内容
+server.port: 5601
+server.host: "0.0.0.0"
+# YAML 数组格式，更易解析
+elasticsearch.hosts:
+  - http://es-node1:9200
+  - http://es-node2:9200
+xpack.security.enabled: false
+i18n.locale: "zh-CN"

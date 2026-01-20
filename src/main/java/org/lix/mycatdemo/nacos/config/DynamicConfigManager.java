@@ -104,12 +104,14 @@ public class DynamicConfigManager {
     public void addListener(String namespaceId, String dataId, String group, Listener listener) {
         ConfigService configService = getConfigService(namespaceId);
         if(configService == null) {
-            log.info("监听器注册失败");
+            log.info("监听器注册失败, namespaceId: {}, dataId: {}, group: {}, listener: {}",
+                    namespaceId, dataId, group, listener);
             return;
         }
         try {
             configService.addListener(dataId, group, listener);
-            log.info("监听器注册成功");
+            log.info("监听器注册成功, namespaceId: {}, dataId: {}, group: {}, listener: {}",
+                    namespaceId, dataId, group, listener);
         } catch (NacosException e) {
             throw new RuntimeException(e);
         }

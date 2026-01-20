@@ -36,6 +36,9 @@ import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
+/**
+ * XXX 目前来说只是基于一些固定规则进行相关配置调整，需要全面接入相关配置，不过目前够用了
+ */
 @Slf4j
 @Component
 public class ShardingJDBCListener {

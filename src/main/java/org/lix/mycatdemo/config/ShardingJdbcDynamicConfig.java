@@ -15,7 +15,7 @@ import java.util.Set;
 /**
  * ShardingJDBC 动态配置类
  * 支持基于 Nacos 配置中心的动态刷新
- * 
+ * XXX 这个可能不需要
  * 注意：ShardingSphere 4.1.1 对动态配置的支持有限，
  * 某些配置变化（如数据源、分片规则）可能需要重启应用才能生效
  */

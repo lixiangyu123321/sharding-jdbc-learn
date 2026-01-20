@@ -17,6 +17,9 @@ import java.util.Random;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
+/**
+ * 模拟高并发数据库读写操作
+ */
 @Slf4j
 @Component
 public class ScheduleTaskService {
@@ -62,8 +65,8 @@ public class ScheduleTaskService {
      */
     private static final int READ_WRITE_RATIO = 3;
 
-    @PostConstruct
-    public void init() {
+    //@PostConstruct
+    public void initr() {
         taskScheduler = new ThreadPoolTaskScheduler();
         taskScheduler.setPoolSize(10);
         taskScheduler.setThreadNamePrefix("ScheduleTaskService");

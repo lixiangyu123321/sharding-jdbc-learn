@@ -14,7 +14,6 @@ import java.util.Properties;
  * 获得基于Nacos的ConfigService
  */
 @Slf4j
-@Configuration
 public class DynamicConfigService {
 
     /**
