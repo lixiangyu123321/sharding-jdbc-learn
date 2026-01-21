@@ -204,6 +204,15 @@ services:
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
       - xpack.security.enabled=false
       - xpack.monitoring.enabled=false
+      # 允许单节点运行，自动调整副本
+      - action.auto_create_index=true
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      # 分片分配相关配置
+      - cluster.routing.allocation.enable=all
+      # 设置默认副本数（适用于测试环境）
+      - index.number_of_replicas=0
+      # 允许在 yellow 状态下运行
+      - cluster.routing.allocation.node_concurrent_recoveries=2
     volumes:
       - es-data-1:/usr/share/elasticsearch/data
     ulimits:
@@ -211,6 +220,12 @@ services:
         soft: -1
         hard: -1
     privileged: true
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=30s || exit 1"]
+      interval: 10s
+      timeout: 30s
+      retries: 30
+      start_period: 120s
 
   # 7. ES 节点2
   es-node2:
@@ -230,6 +245,15 @@ services:
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
       - xpack.security.enabled=false
       - xpack.monitoring.enabled=false
+      # 允许单节点运行，自动调整副本
+      - action.auto_create_index=true
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      # 分片分配相关配置
+      - cluster.routing.allocation.enable=all
+      # 设置默认副本数（适用于测试环境）
+      - index.number_of_replicas=0
+      # 允许在 yellow 状态下运行
+      - cluster.routing.allocation.node_concurrent_recoveries=2
     volumes:
       - es-data-2:/usr/share/elasticsearch/data
     ulimits:
@@ -237,8 +261,15 @@ services:
         soft: -1
         hard: -1
     privileged: true
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health?wait_for_status=yellow&timeout=30s || exit 1"]
+      interval: 10s
+      timeout: 30s
+      retries: 30
+      start_period: 120s
     depends_on:
-      - es-node1
+      es-node1:
+        condition: service_healthy
 
   # 8. Kibana 服务
   kibana:
@@ -253,8 +284,8 @@ services:
       - kibana-data:/usr/share/kibana/data  # 挂载数据目录而不是配置目录
       - ./kibaba/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro  # 挂载配置文件
     environment:
-      # 配置 ES 集群地址（使用单个主节点，Kibana 会自动发现集群中的其他节点）
-      - ELASTICSEARCH_HOSTS=http://es-node1:9200
+      # 不使用环境变量设置 ES 地址，完全使用配置文件
+      # ELASTICSEARCH_HOSTS 已在 kibana.yml 中配置
       # 关闭安全认证（和 ES 保持一致，ES 关了这里也关）
       - xpack.security.enabled=false
       # 中文界面（可选，默认英文）
@@ -263,9 +294,14 @@ services:
       - SERVER_NAME=kibana
       # 服务器主机（允许外部访问）
       - SERVER_HOST=0.0.0.0
+      # 增加 ES 连接超时时间
+      - ELASTICSEARCH_REQUESTTIMEOUT=300000
+      - ELASTICSEARCH_PINGTIMEOUT=30000
     depends_on:
-      - es-node1
-      - es-node2  # 保证 Kibana 在 ES 节点后启动
+      es-node1:
+        condition: service_healthy
+      es-node2:
+        condition: service_healthy
 
   # 9. Logstash 服务
   logstash:
