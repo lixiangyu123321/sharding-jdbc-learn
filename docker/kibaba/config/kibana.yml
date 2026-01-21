@@ -5,5 +5,11 @@ server.host: "0.0.0.0"
 elasticsearch.hosts:
   - http://es-node1:9200
   - http://es-node2:9200
-xpack.security.enabled: false
+
+# 完全禁用安全功能
+# 只需要设置 xpack.security.enabled: false
+# 其他安全相关的配置在安全功能禁用时会被自动忽略
+# xpack.security.enabled: false
+
+# 中文界面
 i18n.locale: "zh-CN"

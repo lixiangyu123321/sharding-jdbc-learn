@@ -251,6 +251,7 @@ services:
       - "5601:5601"  # Kibana 前端访问端口（固定 5601）
     volumes:
       - kibana-data:/usr/share/kibana/data  # 挂载数据目录而不是配置目录
+      - ./kibaba/config/kibana.yml:/usr/share/kibana/config/kibana.yml:ro  # 挂载配置文件
     environment:
       # 配置 ES 集群地址（使用单个主节点，Kibana 会自动发现集群中的其他节点）
       - ELASTICSEARCH_HOSTS=http://es-node1:9200
@@ -278,8 +279,9 @@ services:
       - "9600:9600"  # Logstash API 端口
     volumes:
       - logstash-data:/usr/share/logstash/data
-      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
+      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
       - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - ./logstash/templates:/usr/share/logstash/templates:ro
     environment:
       - LS_JAVA_OPTS=-Xmx512m -Xms512m
       - XPACK_MONITORING_ENABLED=false
@@ -297,7 +299,7 @@ services:
       - docker-cluster-network
     volumes:
       - filebeat-data:/usr/share/filebeat/data
-      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml
       # 挂载应用日志目录（Windows 需要绝对路径）
       # Windows: 使用项目根目录的 logs 文件夹挂载到容器的 /var/log/app
       # Linux: 使用 /var/log/app 或项目目录下的 logs 文件夹

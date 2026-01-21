@@ -22,6 +22,8 @@ spring:
         import-check:
           enabled: true
         timeout: ${NACOS_TIMEOUT:3000}
+      discovery:
+        enabled: false
 
 #  shardingsphere:
 #    datasource:
