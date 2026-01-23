@@ -2,11 +2,9 @@ package org.lix.mycatdemo.watermark.service;
 
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
-import org.apache.tomcat.util.http.fileupload.IOUtils;
 import org.lix.mycatdemo.watermark.type.ImageTypeEnum;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -23,131 +21,113 @@ import java.util.Map;
 @Slf4j
 @Service
 public class ImageWatermarkService {
-
+    // ===================== 常量配置 =====================
     /**
-     * 允许的文件类型
-     */
-    //private static final String[] ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/jpg"};
-    /**
-     * 最大文件大小
+     * 最大文件大小 (5MB)
      */
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
 
     /**
-     * 水印图片缩放比例
+     * 水印图片缩放比例 (5%)
      */
     private static final float WATERMARK_SCALE_RATIO = 0.05f;
 
+    /**
+     * 默认水印图片路径（硬编码，可根据实际路径修改）
+     */
+    private static final String DEFAULT_WATERMARK_IMAGE_PATH = "D:/default_watermark.png";
+
+    /**
+     * 缓存的默认水印图片（类初始化时加载，避免重复读取）
+     */
+    private static BufferedImage DEFAULT_WATERMARK_IMAGE;
+
+    // 静态初始化：加载默认水印图片
+    static {
+        try {
+            File defaultWatermarkFile = new File(DEFAULT_WATERMARK_IMAGE_PATH);
+            if (defaultWatermarkFile.exists() && defaultWatermarkFile.isFile()) {
+                DEFAULT_WATERMARK_IMAGE = ImageIO.read(defaultWatermarkFile);
+                log.info("默认水印图片加载成功，路径：{}", DEFAULT_WATERMARK_IMAGE_PATH);
+            } else {
+                log.error("默认水印图片不存在，路径：{}", DEFAULT_WATERMARK_IMAGE_PATH);
+                DEFAULT_WATERMARK_IMAGE = null;
+            }
+        } catch (IOException e) {
+            log.error("加载默认水印图片失败", e);
+            DEFAULT_WATERMARK_IMAGE = null;
+        }
+    }
+
+    // ===================== 对外接口（兼容原有调用） =====================
+    /**
+     * 添加文字水印（对外接口）
+     */
     public ResponseEntity<?> addImageWatermark(
             MultipartFile file,
             String watermarkText,
             Float alpha,
             String position,
             HttpServletResponse response
-    ){
+    ) {
         Map<String, String> errorMsg = new HashMap<>();
-        // 校验文件是否为空
+        // 参数校验
         if (file == null || file.isEmpty()) {
             errorMsg.put("file", "上传的图片文件不能为空");
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
-        // 校验文件大小
         if (file.getSize() > MAX_FILE_SIZE) {
             errorMsg.put("file", "图片大小不能超过5MB");
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
-        // 校验文件类型
         String contentType = file.getContentType();
         if (!isAllowedType(contentType)) {
             errorMsg.put("file", "仅支持JPG/PNG/JPEG格式的图片");
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
-        // 校验透明度
-        if (alpha < 0 || alpha > 1) {
+        if (alpha == null || alpha < 0 || alpha > 1) {
             errorMsg.put("alpha", "透明度必须在0.0-1.0之间");
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
 
-        try(InputStream inputStream = file.getInputStream()) {
-            // XXX 第一个工具类ImageIO
-            BufferedImage sourceImage = ImageIO.read(inputStream);
-            if (sourceImage == null) {
-                errorMsg.put("file", "图片文件损坏，无法读取");
-                return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
+        try {
+            // 核心修复1：将MultipartFile的流复制到ByteArrayInputStream（可重置）
+            byte[] sourceBytes = file.getBytes();
+            ByteArrayInputStream sourceIs = new ByteArrayInputStream(sourceBytes);
+            String fileExt = getFileExtension(file.getOriginalFilename());
+
+            // 调用改造后的核心方法（使用可重置的ByteArrayInputStream）
+            try (OutputStream outputStream = response.getOutputStream()) {
+                addTextWatermark(sourceIs, outputStream, watermarkText, alpha, position, fileExt);
+
+                // 设置响应头
+                response.setContentType(ImageTypeEnum.of(fileExt).getMediaTypeString());
+                response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=" + URLEncoder.encode("watermark_" + file.getOriginalFilename(), "UTF-8"));
             }
 
-            // TODO 添加图片水印
-            BufferedImage watermarkedImage = addTextWatermark(sourceImage, watermarkText, alpha, position);
-
-            // XXX 关于内存字节输出流
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            String fileExt = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf(".") + 1);
-            if(ImageTypeEnum.JPG.getExtension().equals(fileExt)){
-                fileExt = "jpeg";
-            }
-            // XXX 将水印图片写入内存流
-            ImageIO.write(watermarkedImage, fileExt, bos);
-            byte[] imageBytes = bos.toByteArray();
-
-            response.setContentType(ImageTypeEnum.of(fileExt).getMediaTypeString());
-            // XXX 告诉浏览器如何处理返回的文件（图片）—— 强制触发文件下载，而非在浏览器中直接预览，并指定下载文件的名称。
-            response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + URLEncoder.encode("watermark_" + file.getOriginalFilename(), "UTF-8"));
-            response.setContentLength(imageBytes.length);
-
-            response.getOutputStream().write(imageBytes);
-            response.getOutputStream().flush();
-
-            // XXX 响应体的输入都是map类型，就是将map类型转换为json
             return ResponseEntity.ok().body(buildResult(true, "水印添加成功", null));
-
         } catch (IOException e) {
-            // 异常捕获
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            log.error("添加文字水印失败", e);
             errorMsg.put("system", "图片处理失败：" + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(buildResult(false, null, errorMsg));
         }
     }
 
-//    /**
-//     * 添加图片水印
-//     */
-//    public ResponseEntity<?> addImageWatermark(
-//            MultipartFile file,
-//            MultipartFile watermark,
-//            Float alpha,
-//            String position,
-//            HttpServletResponse response
-//    ) throws IOException {
-//        // TODO 等比例缩小水印图片至加水印图片的2.5%
-//        // TODO 流程与添加文本水印类似
-//        String ext = watermark.getOriginalFilename().substring(watermark.getOriginalFilename().lastIndexOf(".") + 1);
-//        File watermarkFile = File.createTempFile("tmp_", ext);
-//        try (InputStream is = watermark.getInputStream();
-//            OutputStream os = Files.newOutputStream(watermarkFile.toPath())) {
-//            IOUtils.copyLarge(is, os);
-//        } catch (Exception e) {
-//            log.error("下载图片失败, path:{}", watermarkFile, e);
-//            return null;
-//        }
-//        Thumbnails.of(watermarkFile)
-//                .size(width, height)
-//                .keepAspectRatio(false)
-//                .outputQuality(1)
-//                .toOutputStream(outputStream);
-//        return null;
-//    }
-
+    /**
+     * 添加图片水印（对外接口）
+     * 若未传入水印图片，则使用默认水印图片
+     */
     public ResponseEntity<?> addImageWatermark(
-            MultipartFile file,          // 源图片
-            MultipartFile watermarkFile, // 水印图片
-            Float alpha,                 // 透明度
+            MultipartFile file,
+            MultipartFile watermarkFile,
+            Float alpha,
             String position,
             Float radio,
             HttpServletResponse response
     ) {
         Map<String, String> errorMsg = new HashMap<>();
-        // 1. 基础参数校验
-        // 校验源图片
+        // 源图片参数校验
         if (file == null || file.isEmpty()) {
             errorMsg.put("file", "上传的图片文件不能为空");
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
@@ -162,118 +142,169 @@ public class ImageWatermarkService {
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
 
-        // 校验水印图片
-        if (watermarkFile == null || watermarkFile.isEmpty()) {
-            errorMsg.put("watermark", "水印图片不能为空");
-            return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
-        }
-        if (watermarkFile.getSize() > MAX_FILE_SIZE) {
-            errorMsg.put("watermark", "水印图片大小不能超过5MB");
-            return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
-        }
-        String watermarkContentType = watermarkFile.getContentType();
-        if (!isAllowedType(watermarkContentType)) {
-            errorMsg.put("watermark", "水印图片仅支持JPG/PNG/JPEG格式");
-            return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
-        }
-
-        // 校验透明度
+        // 透明度校验
         if (alpha == null || alpha < 0 || alpha > 1) {
             errorMsg.put("alpha", "透明度必须在0.0-1.0之间");
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
 
-        try(InputStream inputStream = file.getInputStream()) {
-            // 2. 读取源图片
-            BufferedImage sourceImage = ImageIO.read(inputStream);
+        try {
+            // 核心修复2：将源图片转为字节数组，避免流重置问题
+            byte[] sourceBytes = file.getBytes();
+            ByteArrayInputStream sourceIs = new ByteArrayInputStream(sourceBytes);
+            // 第一次读取源图片（用于缩放水印）
+            BufferedImage sourceImage = ImageIO.read(sourceIs);
             if (sourceImage == null) {
                 errorMsg.put("file", "源图片文件损坏，无法读取");
                 return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
             }
 
-            // 3. 处理水印图片：等比例缩放到源图片的2.5%
-            BufferedImage watermarkImage = scaleWatermarkImage(watermarkFile, sourceImage, radio);
+            // 重置字节输入流（ByteArrayInputStream支持reset）
+            sourceIs.reset();
+
+            // 处理水印图片
+            BufferedImage watermarkImage;
+            if (watermarkFile != null && !watermarkFile.isEmpty()) {
+                // 校验传入的水印图片
+                if (watermarkFile.getSize() > MAX_FILE_SIZE) {
+                    errorMsg.put("watermark", "水印图片大小不能超过5MB");
+                    return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
+                }
+                String watermarkContentType = watermarkFile.getContentType();
+                if (!isAllowedType(watermarkContentType)) {
+                    errorMsg.put("watermark", "水印图片仅支持JPG/PNG/JPEG格式");
+                    return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
+                }
+                // 核心修复3：水印图片流使用try-with-resources确保关闭
+                try (InputStream watermarkIs = watermarkFile.getInputStream()) {
+                    watermarkImage = scaleWatermarkImage(watermarkIs, sourceImage, radio);
+                }
+            } else {
+                // 使用默认水印图片
+                if (DEFAULT_WATERMARK_IMAGE == null) {
+                    errorMsg.put("watermark", "默认水印图片未配置或加载失败");
+                    return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
+                }
+                watermarkImage = scaleWatermarkImage(DEFAULT_WATERMARK_IMAGE, sourceImage, radio);
+            }
+
             if (watermarkImage == null) {
                 errorMsg.put("watermark", "水印图片损坏，无法读取或缩放");
                 return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
             }
 
-            // 4. 添加图片水印
-            BufferedImage watermarkedImage = addImageWatermarkToSource(sourceImage, watermarkImage, alpha, position);
-
-            // 5. 写入内存流并返回
-            ByteArrayOutputStream bos = new ByteArrayOutputStream();
+            // 调用核心方法添加水印
             String fileExt = getFileExtension(file.getOriginalFilename());
-            ImageIO.write(watermarkedImage, fileExt, bos);
-            byte[] imageBytes = bos.toByteArray();
+            try (OutputStream outputStream = response.getOutputStream()) {
+                addImageWatermarkToSource(sourceIs, outputStream, watermarkImage, alpha, position, fileExt);
 
-            // 设置响应头
-            response.setContentType(ImageTypeEnum.of(fileExt).getMediaTypeString());
-            response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
-                    "attachment; filename=" + URLEncoder.encode("watermark_" + file.getOriginalFilename(), "UTF-8"));
-            response.setContentLength(imageBytes.length);
-
-            // 输出图片
-            response.getOutputStream().write(imageBytes);
-            response.getOutputStream().flush();
+                // 设置响应头
+                response.setContentType(ImageTypeEnum.of(fileExt).getMediaTypeString());
+                response.setHeader(HttpHeaders.CONTENT_DISPOSITION,
+                        "attachment; filename=" + URLEncoder.encode("watermark_" + file.getOriginalFilename(), "UTF-8"));
+            }
 
             return ResponseEntity.ok().body(buildResult(true, "图片水印添加成功", null));
-
         } catch (IOException e) {
             log.error("添加图片水印失败", e);
-            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
             errorMsg.put("system", "图片水印处理失败：" + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(buildResult(false, null, errorMsg));
         }
     }
 
+    // ===================== 改造后的核心方法（InputStream/OutputStream 参数） =====================
     /**
-     * 缩放水印图片：等比例缩放到源图片的2.5%大小
+     * 添加文字水印（核心方法，InputStream输入源图片，OutputStream输出结果）
+     * @param sourceIs 源图片输入流（需为可重置的ByteArrayInputStream）
+     * @param targetOs 结果输出流
+     * @param text 水印文字
+     * @param alpha 透明度
+     * @param position 水印位置
+     * @param format 输出图片格式（jpeg/png）
      */
-    private BufferedImage scaleWatermarkImage(MultipartFile watermarkFile, BufferedImage sourceImage, Float radio) throws IOException {
-        // 读取水印图片
-        try(InputStream inputStream = watermarkFile.getInputStream();
-        ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
-            BufferedImage originalWatermark = ImageIO.read(inputStream);
-            if (originalWatermark == null) {
-                return null;
-            }
-
-            // 计算目标尺寸：源图片的2.5%（等比例）
-            int sourceWidth = sourceImage.getWidth();
-            int sourceHeight = sourceImage.getHeight();
-            int targetWatermarkWidth = (int) (sourceWidth * radio);
-            // 等比例计算高度
-            double ratio = (double) originalWatermark.getHeight() / originalWatermark.getWidth();
-            int targetWatermarkHeight = (int) (targetWatermarkWidth * ratio);
-
-            // 使用Thumbnails缩放水印图片（保持比例，高质量）
-            Thumbnails.of(originalWatermark)
-                    .size(targetWatermarkWidth, targetWatermarkHeight)
-                .keepAspectRatio(true)
-                .outputQuality(1.0f)
-                .outputFormat("jpg")
-                .toOutputStream(bos);
-
-            // 转换为BufferedImage返回
-            return ImageIO.read(new ByteArrayInputStream(bos.toByteArray()));
+    public void addTextWatermark(InputStream sourceIs, OutputStream targetOs,
+                                 String text, float alpha, String position, String format) throws IOException {
+        // 读取源图片
+        BufferedImage sourceImage = ImageIO.read(sourceIs);
+        if (sourceImage == null) {
+            throw new IOException("源图片文件损坏，无法读取");
         }
 
+        // 创建可编辑的图片副本
+        int imageType = (sourceImage.getTransparency() == Transparency.OPAQUE)
+                ? BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB;
+        BufferedImage targetImage = new BufferedImage(sourceImage.getWidth(), sourceImage.getHeight(), imageType);
+        Graphics2D g2d = targetImage.createGraphics();
+
+        // 开启抗锯齿
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+        // 绘制原始图片
+        g2d.drawImage(sourceImage, 0, 0, null);
+
+        // 设置水印样式
+        g2d.setColor(Color.RED);
+        g2d.setFont(new Font("微软雅黑", Font.PLAIN, 30));
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+
+        // 计算水印位置
+        FontMetrics metrics = g2d.getFontMetrics();
+        int textWidth = metrics.stringWidth(text);
+        int textHeight = metrics.getHeight();
+        int x = 0, y = 0;
+
+        String pos = position == null ? "RIGHT_BOTTOM" : position.toUpperCase();
+        switch (pos) {
+            case "LEFT_TOP":
+                x = 20;
+                y = textHeight + 20;
+                break;
+            case "CENTER":
+                x = (sourceImage.getWidth() - textWidth) / 2;
+                y = (sourceImage.getHeight() + textHeight) / 2;
+                break;
+            case "RIGHT_BOTTOM":
+            default:
+                x = Math.max(20, sourceImage.getWidth() - textWidth - 20);
+                y = Math.max(textHeight + 20, sourceImage.getHeight() - 20);
+                break;
+        }
+
+        // 绘制水印文字
+        g2d.drawString(text, x, y);
+        g2d.dispose();
+
+        // 写入输出流
+        ImageIO.write(targetImage, format, targetOs);
+        targetOs.flush();
     }
 
     /**
-     * 给源图片添加图片水印
+     * 添加图片水印（核心方法，InputStream输入源图片，OutputStream输出结果）
+     * @param sourceIs 源图片输入流（需为可重置的ByteArrayInputStream）
+     * @param targetOs 结果输出流
+     * @param watermarkImage 水印图片（已缩放）
+     * @param alpha 透明度
+     * @param position 水印位置
+     * @param format 输出图片格式（jpeg/png）
      */
-    private BufferedImage addImageWatermarkToSource(BufferedImage sourceImage, BufferedImage watermarkImage,
-                                                    float alpha, String position) {
+    public void addImageWatermarkToSource(InputStream sourceIs, OutputStream targetOs,
+                                          BufferedImage watermarkImage, float alpha, String position, String format) throws IOException {
+        // 读取源图片
+        BufferedImage sourceImage = ImageIO.read(sourceIs);
+        if (sourceImage == null) {
+            throw new IOException("源图片文件损坏，无法读取");
+        }
+
         // 创建可编辑的图片副本
-        BufferedImage targetImage = new BufferedImage(
-                sourceImage.getWidth(),
-                sourceImage.getHeight(),
-                // 兼容PNG透明水印：使用TYPE_INT_ARGB
-                sourceImage.getType() == BufferedImage.TYPE_INT_RGB ? BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB
-        );
+        int imageType = (sourceImage.getTransparency() == Transparency.OPAQUE)
+                ? BufferedImage.TYPE_INT_RGB : BufferedImage.TYPE_INT_ARGB;
+        BufferedImage targetImage = new BufferedImage(sourceImage.getWidth(), sourceImage.getHeight(), imageType);
         Graphics2D g2d = targetImage.createGraphics();
+
+        // 开启抗锯齿
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 
         // 绘制原始图片
         g2d.drawImage(sourceImage, 0, 0, null);
@@ -290,11 +321,48 @@ public class ImageWatermarkService {
         // 释放资源
         g2d.dispose();
 
-        return targetImage;
+        // 写入输出流
+        ImageIO.write(targetImage, format, targetOs);
+        targetOs.flush();
+    }
+
+    // ===================== 辅助方法 =====================
+    /**
+     * 缩放水印图片（传入InputStream）
+     */
+    private BufferedImage scaleWatermarkImage(InputStream watermarkIs, BufferedImage sourceImage, Float radio) throws IOException {
+        BufferedImage originalWatermark = ImageIO.read(watermarkIs);
+        if (originalWatermark == null) {
+            return null;
+        }
+        return scaleWatermarkImage(originalWatermark, sourceImage, radio);
     }
 
     /**
-     * 计算水印图片的位置
+     * 缩放水印图片（传入缓存的BufferedImage，默认水印专用）
+     */
+    private BufferedImage scaleWatermarkImage(BufferedImage originalWatermark, BufferedImage sourceImage, Float radio) throws IOException {
+        // 计算目标尺寸：源图片的5%（等比例）
+        int sourceWidth = sourceImage.getWidth();
+        int sourceHeight = sourceImage.getHeight();
+        int targetWatermarkWidth = (int) (sourceWidth * WATERMARK_SCALE_RATIO);
+        double ratio = (double) originalWatermark.getHeight() / originalWatermark.getWidth();
+        int targetWatermarkHeight = (int) (targetWatermarkWidth * ratio);
+
+        // 使用Thumbnails缩放（显式指定格式，解决Output format异常）
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
+            Thumbnails.of(originalWatermark)
+                    .size(targetWatermarkWidth, targetWatermarkHeight)
+                    .keepAspectRatio(true)
+                    .outputQuality(1.0f)
+                    .outputFormat("png") // 默认使用png保证透明性
+                    .toOutputStream(bos);
+            return ImageIO.read(new ByteArrayInputStream(bos.toByteArray()));
+        }
+    }
+
+    /**
+     * 计算水印位置
      */
     private Point calculateWatermarkPosition(BufferedImage sourceImage, BufferedImage watermarkImage, String position) {
         int sourceWidth = sourceImage.getWidth();
@@ -307,30 +375,25 @@ public class ImageWatermarkService {
 
         switch (pos) {
             case "LEFT_TOP":
-                // 左上角（偏移20px）
                 x = 20;
                 y = 20;
                 break;
             case "LEFT_BOTTOM":
-                // 左下角
                 x = 20;
-                y = sourceHeight - watermarkHeight - 20;
+                y = Math.max(20, sourceHeight - watermarkHeight - 20);
                 break;
             case "RIGHT_TOP":
-                // 右上角
-                x = sourceWidth - watermarkWidth - 20;
+                x = Math.max(20, sourceWidth - watermarkWidth - 20);
                 y = 20;
                 break;
             case "CENTER":
-                // 正中间
                 x = (sourceWidth - watermarkWidth) / 2;
                 y = (sourceHeight - watermarkHeight) / 2;
                 break;
             case "RIGHT_BOTTOM":
             default:
-                // 右下角（默认）
-                x = sourceWidth - watermarkWidth - 20;
-                y = sourceHeight - watermarkHeight - 20;
+                x = Math.max(20, sourceWidth - watermarkWidth - 20);
+                y = Math.max(20, sourceHeight - watermarkHeight - 20);
                 break;
         }
         return new Point(x, y);
@@ -351,62 +414,15 @@ public class ImageWatermarkService {
      * 判断文件类型是否合法
      */
     private boolean isAllowedType(String contentType) {
-        for(ImageTypeEnum imageTypeEnum : ImageTypeEnum.values()) {
-            if(contentType.equalsIgnoreCase(imageTypeEnum.getMediaTypeString())) {
+        if (contentType == null) {
+            return false;
+        }
+        for (ImageTypeEnum imageTypeEnum : ImageTypeEnum.values()) {
+            if (contentType.equalsIgnoreCase(imageTypeEnum.getMediaTypeString())) {
                 return true;
             }
         }
         return false;
-    }
-
-
-    /**
-     * 添加文字水印的核心方法
-     */
-    private BufferedImage addTextWatermark(BufferedImage sourceImage, String text, float alpha, String position) {
-        // 创建可编辑的图片副本
-        BufferedImage targetImage = new BufferedImage(
-                sourceImage.getWidth(),
-                sourceImage.getHeight(),
-                BufferedImage.TYPE_INT_RGB
-        );
-        Graphics2D g2d = targetImage.createGraphics();
-
-        // 绘制原始图片
-        g2d.drawImage(sourceImage, 0, 0, null);
-
-        // 设置水印样式
-        g2d.setColor(Color.RED);
-        g2d.setFont(new Font("微软雅黑", Font.PLAIN, 30));
-        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
-
-        // 计算水印位置
-        FontMetrics metrics = g2d.getFontMetrics();
-        int textWidth = metrics.stringWidth(text);
-        int textHeight = metrics.getHeight();
-        int x = 0, y = 0;
-
-        switch (position.toUpperCase()) {
-            case "LEFT_TOP":
-                x = 20;
-                y = textHeight + 20;
-                break;
-            case "CENTER":
-                x = (sourceImage.getWidth() - textWidth) / 2;
-                y = (sourceImage.getHeight() + textHeight) / 2;
-                break;
-            case "RIGHT_BOTTOM":
-            default:
-                x = sourceImage.getWidth() - textWidth - 20;
-                y = sourceImage.getHeight() - 20;
-                break;
-        }
-
-        // 绘制水印文字
-        g2d.drawString(text, x, y);
-        g2d.dispose();
-
-        return targetImage;
     }
 
     /**
@@ -420,4 +436,8 @@ public class ImageWatermarkService {
         return result;
     }
 
+    // ===================== 工具方法：获取默认水印图片（对外暴露） =====================
+    public BufferedImage getDefaultWatermarkImage() {
+        return DEFAULT_WATERMARK_IMAGE;
+    }
 }
