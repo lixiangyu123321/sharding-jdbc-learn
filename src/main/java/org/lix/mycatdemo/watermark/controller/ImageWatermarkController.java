@@ -30,8 +30,10 @@ public class ImageWatermarkController {
     @Resource
     private ImageWatermarkService imageWatermarkService;
 
-
-
+    /**
+     * 水印图片缩放比例
+     */
+    private static final float WATERMARK_SCALE_RATIO = 0.1f;
 
     /**
      * 添加图片水印接口
@@ -58,20 +60,21 @@ public class ImageWatermarkController {
         return ans;
     }
 
-    @PostMapping
+    @PostMapping("/image")
     public ResponseEntity<?> addImageWatermark(
             @RequestParam("file") MultipartFile file,
             @RequestParam("watermark") MultipartFile watermark,
             @RequestParam(value = "alpha", defaultValue = "0.5") Float alpha,
             @RequestParam(value = "position", defaultValue = "RIGHT_BOTTOM") String position,
+            @RequestParam(value = "radio", defaultValue = "0.1") Float radio,
             HttpServletResponse response
     ){
         log.info("开始添加图片水印");
-        ResponseEntity<?> ans =  imageWatermarkService.addImageWatermark(file, watermark, alpha, position, response);
+        ResponseEntity<?> ans =  imageWatermarkService.addImageWatermark(file, watermark, alpha, position, radio == null ? WATERMARK_SCALE_RATIO : radio, response);
         if(ans.getStatusCode().equals(HttpStatus.OK)) {
             return null;
         }
-        return null;
+        return ans;
     }
 
 
@@ -82,6 +85,7 @@ public class ImageWatermarkController {
     public ResponseEntity<Map<String, Object>> handleGlobalException(Exception e) {
         Map<String, String> errorMsg = new HashMap<>();
         errorMsg.put("system", "服务器内部错误：" + e.getMessage());
+        log.error("{}", errorMsg, e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(buildResult(false, null, errorMsg));
     }
 

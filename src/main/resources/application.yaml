@@ -111,6 +111,12 @@ spring:
 #    props:
 #      sql-show: true
 
+  servlet:
+    multipart:
+      max-request-size: 50MB    # 整个请求体的最大大小
+      max-file-size: 50MB       # 单个文件的最大大小
+      file-size-threshold: 4KB  # 内存缓存阈值
+      enabled: true             # 启用文件上传支持
 
 server:
   port: 8080

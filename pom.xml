@@ -143,6 +143,13 @@
             <artifactId>logstash-logback-encoder</artifactId>
             <version>4.11</version>
         </dependency>
+
+        <!-- 缩略图相关依赖 -->
+        <dependency>
+            <groupId>net.coobird</groupId>
+            <artifactId>thumbnailator</artifactId>
+            <version>0.4.19</version>
+        </dependency>
     </dependencies>
 
 
