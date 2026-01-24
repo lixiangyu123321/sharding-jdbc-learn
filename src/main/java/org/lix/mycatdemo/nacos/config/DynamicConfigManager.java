@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -85,6 +86,10 @@ public class DynamicConfigManager {
 
             try {
                 ConfigService configService = NacosFactory.createConfigService(properties);
+                if(Objects.isNull(configService)){
+                    log.error("NacosConfigService创建失败, namespace: {}", namespaceId);
+                    throw new RuntimeException("创建Nacos配置服务失败");
+                }
                 configServiceMap.put(namespaceId, configService);
                 return configService;
             } catch (NacosException e) {
@@ -118,6 +123,18 @@ public class DynamicConfigManager {
     }
 
     /**
+     * 移除指定监听器
+     * @param namespace 命名空间名
+     * @param dataId dataId
+     * @param group group
+     * @param listener 监听器
+     */
+    public void removeListener(String namespace, String dataId, String group, Listener listener) {
+        ConfigService configService = getConfigService(getNamespaceId(namespace));
+        configService.removeListener(dataId, group, listener);
+    }
+
+    /**
      * 获得命名空间Id
      * @param namespace 命名空间名
      * @return 命名空间Id
@@ -131,4 +148,47 @@ public class DynamicConfigManager {
         }
         return "";
     }
+
+    /**
+     * 发布配置
+     * @param namespace 命名空间名
+     * @param dataId dataId
+     * @param group group
+     * @param content 配置内容
+     * @return 是否发布成功
+     */
+    public boolean publishConfig(String namespace, String dataId, String group, String content) {
+        ConfigService configService = getConfigService(getNamespaceId(namespace));
+        if(configService == null) {
+            log.info("配置连接获取失败, namespace: {}, dataId: {}, group: {}", namespace, dataId, group);
+            return false;
+        }
+        try {
+            return configService.publishConfig(dataId, group, content);
+        } catch (NacosException e) {
+            log.error("发布配置失败, namespace: {}, dataId: {}, group: {}, content: {}",
+                    namespace, dataId, group, content, e);
+            return false;
+        }
+    }
+
+    /**
+     * 删除配置
+     * @param namespace 命名空间名
+     * @param dataId dataid
+     * @param group group
+     * @return 是否删除成功，注意如果没有该配置也会返回true
+     */
+    public boolean removeConfig(String namespace, String dataId, String group) {
+        ConfigService configService = getConfigService(getNamespaceId(namespace));
+        try {
+            return configService.removeConfig(dataId, group);
+        } catch (NacosException e) {
+            log.error("删除配置失败, namespace: {}, dataId: {}, group: {}",
+                    namespace, dataId, group, e);
+            return false;
+        }
+    }
+
+
 }
