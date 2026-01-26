@@ -19,7 +19,7 @@ import java.util.Map;
 @ConfigurationProperties(prefix = "myapp")
 public class NacosExample {
 
-    @Value("${myapp.config}")
+    // @Value("${myapp.config}")
     private String config;
 
     /**

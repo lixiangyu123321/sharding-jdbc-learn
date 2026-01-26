@@ -46,7 +46,45 @@
             <artifactId>spring-cloud-starter-config</artifactId>
         </dependency>
 
-<!--        nacos相关-->
+<!--        redis相关 -->
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.boot</groupId>-->
+<!--            <artifactId>spring-boot-starter-data-redis</artifactId>-->
+<!--        </dependency>-->
+<!--        &lt;!&ndash; 2. 连接池依赖（必须加，否则RedisTemplate默认用无池化连接，性能差） &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>org.apache.commons</groupId>-->
+<!--            <artifactId>commons-pool2</artifactId>-->
+<!--        </dependency>-->
+        <!-- 3. Redisson客户端依赖（适配Spring Boot 2.7.x） -->
+<!--        <dependency>-->
+<!--            <groupId>org.redisson</groupId>-->
+<!--            <artifactId>redisson-spring-boot-starter</artifactId>-->
+<!--            &lt;!&ndash; 版本适配：Spring Boot 2.7.x 推荐用 3.19.x 版本（兼容最佳） &ndash;&gt;-->
+<!--            <version>3.19.3</version>-->
+<!--        </dependency>-->
+
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.boot</groupId>-->
+<!--            <artifactId>spring-boot-starter-data-redis</artifactId>-->
+<!--            &lt;!&ndash; 排除 Lettuce 依赖，避免冲突 &ndash;&gt;-->
+<!--            <exclusions>-->
+<!--                <exclusion>-->
+<!--                    <groupId>io.lettuce</groupId>-->
+<!--                    <artifactId>lettuce-core</artifactId>-->
+<!--                </exclusion>-->
+<!--            </exclusions>-->
+<!--        </dependency>-->
+
+<!--        &lt;!&ndash; 引入 Redisson（适配 Spring Boot 2.7.x，选择 3.19.x 版本） &ndash;&gt;-->
+<!--        <dependency>-->
+<!--            <groupId>org.redisson</groupId>-->
+<!--            <artifactId>redisson-spring-boot-starter</artifactId>-->
+<!--            <version>3.20.1</version>-->
+<!--        </dependency>-->
+
+
+        <!--        nacos相关-->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>

@@ -1,0 +1,44 @@
+# resources/redisson.yml
+singleServerConfig:
+  idleConnectionTimeout: 10000
+  connectTimeout: 10000
+  timeout: 3000
+  retryAttempts: 3
+  retryInterval: 1500
+  # 禁用 DNS 缓存（关键：避免解析到内网 IP）
+  dnsMonitoring: false
+clusterServersConfig:
+  # 1. 初始节点必须用 宿主机IP:映射端口（不要用 127.0.0.1，用局域网IP）
+  nodeAddresses:
+    - "redis://192.168.1.100:6379"   # 替换为你的宿主机局域网IP
+    - "redis://192.168.1.100:6380"
+    - "redis://192.168.1.100:6381"
+  # 2. 连接池配置
+  connectionPoolSize: 16
+  connectionMinimumIdleSize: 4
+  idleConnectionTimeout: 15000
+  connectTimeout: 15000
+  timeout: 15000
+  retryAttempts: 3
+  retryInterval: 1500
+  # 3. 拓扑刷新（关键：关闭自适应刷新，用固定间隔）
+  scanInterval: 5000
+  adaptiveRefreshTimeout: 0  # 禁用自适应刷新
+  # 4. 地址映射（核心：格式 = 内网IP:容器端口=外网IP:映射端口）
+  addressResolverGroup:
+    # 先通过 docker inspect 确认每个节点的内网 IP
+    mappings:
+      - "172.18.0.5:6379=192.168.1.100:6379"  # redis-node1 内网→外网
+      - "172.18.0.6:6379=192.168.1.100:6380"  # redis-node2 内网→外网
+      - "172.18.0.9:6379=192.168.1.100:6381"  # redis-node3 内网→外网
+    # 强制使用映射规则（关键）
+    overrideOriginalAddresses: true
+# 通用配置
+threads: 8
+nettyThreads: 16
+codec:
+  class: org.redisson.codec.StringCodec
+transportMode: NIO
+# 禁用 DNS 解析（避免解析到内网 IP）
+dnsResolver:
+  class: org.redisson.connection.DnsResolver

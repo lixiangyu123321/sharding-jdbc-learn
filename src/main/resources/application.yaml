@@ -118,6 +118,64 @@ spring:
       file-size-threshold: 4KB  # 内存缓存阈值
       enabled: true             # 启用文件上传支持
 
+  redis:
+    # 基础配置（Redisson 优先读取自身配置，此处仅作为兜底）
+    timeout: 15000  # 连接超时时间（毫秒），和 Redisson 配置保持一致
+    # 注意：删除原有 Lettuce 集群配置，避免冲突
+    # cluster:
+    #   nodes: ...
+    # lettuce:
+    #   pool: ...
+  # Redisson 配置（核心）
+  redisson:
+    # 指定 Redisson 配置文件路径（关键：和 resources/redisson.yml 对应）
+    file: classpath:redisson.yml
+    # 启用 Redisson（默认true，显式配置更清晰）
+    enabled: true
+    # 禁用 Spring Data Redis 的自动配置（避免和 Redisson 冲突）
+    spring-data-redis:
+      enabled: true  # 保持 true，让 Redisson 适配 Spring Data Redis 的 RedisTemplate
+
+#  redis:
+#    # Redis服务器地址
+#    host: 127.0.0.1
+#    # Redis端口
+#    port: 6379
+#    # 密码（无密码则注释）
+##    password: ""
+#    # 数据库索引（默认0）
+#    database: 0
+#    # 连接超时时间
+#    timeout: 5000ms
+#    # lettuce连接池配置（必须加commons-pool2依赖才生效）
+#    lettuce:
+#      pool:
+#        # 最大活跃连接数
+#        max-active: 8
+#        # 最大空闲连接数
+#        max-idle: 8
+#        # 最小空闲连接数
+#        min-idle: 2
+#        # 最大等待时间（-1表示无限制）
+#        max-wait: -1ms
+
+#redisson:
+#  # 选择单机模式（clusterServersConfig 是集群模式，要替换成 singleServerConfig）
+#  singleServerConfig:
+#    address: "redis://127.0.0.1:6379"
+#    # 数据库编号，和 spring.redis.database 保持一致
+#    database: 0
+#    # 如果 Redis 有密码，取消注释并填写，否则删除
+#    # password: yourpassword123
+#    # 连接超时时间（可选，默认即可）
+#    connectTimeout: 10000
+#    # 超时重试次数（可选）
+#    retryAttempts: 3
+#    retryInterval: 1500
+#  # 编码方式（推荐使用）
+#  codec:
+#    type: org.redisson.codec.JsonJacksonCodec
+
 server:
   port: 8080
 
