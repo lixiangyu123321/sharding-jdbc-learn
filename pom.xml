@@ -19,6 +19,8 @@
         <java.version>8</java.version>
         <spring-cloud.version>2021.0.8</spring-cloud.version>
         <nacos.version>2021.0.5.0</nacos.version>
+        <!-- 统一Jackson版本，与Spring Boot 2.7.18匹配 -->
+        <jackson.version>2.13.5</jackson.version>
     </properties>
 
 
@@ -37,6 +39,7 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-config-server</artifactId>
@@ -46,16 +49,33 @@
             <artifactId>spring-cloud-starter-config</artifactId>
         </dependency>
 
-<!--        redis相关 -->
+        <!-- jackson相关内容 -->
 <!--        <dependency>-->
-<!--            <groupId>org.springframework.boot</groupId>-->
-<!--            <artifactId>spring-boot-starter-data-redis</artifactId>-->
+<!--            <groupId>com.fasterxml.jackson.core</groupId>-->
+<!--            <artifactId>jackson-annotations</artifactId>-->
+<!--            &lt;!&ndash; 无需指定版本，Spring Boot 父工程已统一管理 &ndash;&gt;-->
 <!--        </dependency>-->
-<!--        &lt;!&ndash; 2. 连接池依赖（必须加，否则RedisTemplate默认用无池化连接，性能差） &ndash;&gt;-->
+
+<!--        &lt;!&ndash; 可选但推荐：Jackson 核心包 + 数据绑定包（完整支持 JSON 序列化） &ndash;&gt;-->
 <!--        <dependency>-->
-<!--            <groupId>org.apache.commons</groupId>-->
-<!--            <artifactId>commons-pool2</artifactId>-->
+<!--            <groupId>com.fasterxml.jackson.core</groupId>-->
+<!--            <artifactId>jackson-core</artifactId>-->
 <!--        </dependency>-->
+<!--        <dependency>-->
+<!--            <groupId>com.fasterxml.jackson.core</groupId>-->
+<!--            <artifactId>jackson-databind</artifactId>-->
+<!--        </dependency>-->
+
+        <!-- redis相关 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        <!-- 2. 连接池依赖（必须加，否则RedisTemplate默认用无池化连接，性能差） -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
         <!-- 3. Redisson客户端依赖（适配Spring Boot 2.7.x） -->
 <!--        <dependency>-->
 <!--            <groupId>org.redisson</groupId>-->
@@ -164,11 +184,11 @@
                     <version>7.17.29</version>
                 </dependency>
 
-                <dependency>
+                <!-- Jackson依赖由Spring Boot统一管理版本，无需显式指定版本 -->
+                <!-- <dependency>
                     <groupId>com.fasterxml.jackson.core</groupId>
                     <artifactId>jackson-databind</artifactId>
-                    <version>2.17.0</version>
-                </dependency>
+                </dependency> -->
 
         <dependency>
             <groupId>jakarta.json</groupId>
@@ -217,6 +237,22 @@
                 <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!-- 统一管理Jackson版本，解决版本冲突 -->
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-core</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-databind</artifactId>
+                <version>${jackson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

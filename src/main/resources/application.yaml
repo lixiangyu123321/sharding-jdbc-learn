@@ -119,13 +119,27 @@ spring:
       enabled: true             # 启用文件上传支持
 
   redis:
-    # 基础配置（Redisson 优先读取自身配置，此处仅作为兜底）
-    timeout: 15000  # 连接超时时间（毫秒），和 Redisson 配置保持一致
-    # 注意：删除原有 Lettuce 集群配置，避免冲突
-    # cluster:
-    #   nodes: ...
-    # lettuce:
-    #   pool: ...
+    # Redis集群配置（解决Docker内外网地址冲突问题）
+    # 集群节点：使用宿主机IP+映射端口（和Redis公告地址一致）
+    # 如果环境变量REDIS_HOST_IP未设置，则使用默认值172.22.225.108
+    cluster:
+      nodes:
+        - "${REDIS_HOST_IP:172.22.225.108}:6379"
+        - "${REDIS_HOST_IP:172.22.225.108}:6380"
+        - "${REDIS_HOST_IP:172.22.225.108}:6381"
+      max-redirects: 3  # 允许最大重定向次数
+    timeout: 15000  # 超时时间（毫秒），和Redis配置匹配
+    # Lettuce连接池配置
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+      # 关键：关闭拓扑自动刷新（避免客户端重新获取内网IP导致连接失败）
+      cluster:
+        refresh:
+          adaptive: true  # 禁用自适应刷新
+          period: 6000 # -1表示关闭自动刷新，不要设为0
   # Redisson 配置（核心）
   redisson:
     # 指定 Redisson 配置文件路径（关键：和 resources/redisson.yml 对应）

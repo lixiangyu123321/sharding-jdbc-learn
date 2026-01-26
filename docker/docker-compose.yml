@@ -144,7 +144,17 @@ services:
     ports:
       - "6379:6379"
       - "16379:16379"
-    command: redis-server /etc/redis/redis.conf
+    # 核心：公告地址 = 宿主机IP + 宿主机映射端口（解决内外网地址冲突）
+    # 使用环境变量REDIS_HOST_IP，默认值需要替换为你的宿主机IP
+    command:
+      - redis-server
+      - /etc/redis/redis.conf
+      - --cluster-announce-ip
+      - ${REDIS_HOST_IP:-172.22.225.108}
+      - --cluster-announce-port
+      - "6379"
+      - --cluster-announce-bus-port
+      - "16379"
     volumes:
       - redis-data-1:/data
       - ./redis.conf:/etc/redis/redis.conf  # 确保 redis.conf 在当前目录
@@ -160,7 +170,17 @@ services:
     ports:
       - "6380:6379"
       - "16380:16379"
-    command: redis-server /etc/redis/redis.conf
+    # 核心：公告地址 = 宿主机IP + 宿主机映射端口（解决内外网地址冲突）
+    # 使用环境变量REDIS_HOST_IP，默认值需要替换为你的宿主机IP
+    command:
+      - redis-server
+      - /etc/redis/redis.conf
+      - --cluster-announce-ip
+      - ${REDIS_HOST_IP:-172.22.225.108}
+      - --cluster-announce-port
+      - "6380"
+      - --cluster-announce-bus-port
+      - "16380"
     volumes:
       - redis-data-2:/data
       - ./redis.conf:/etc/redis/redis.conf
@@ -178,7 +198,17 @@ services:
     ports:
       - "6381:6379"
       - "16381:16379"
-    command: redis-server /etc/redis/redis.conf
+    # 核心：公告地址 = 宿主机IP + 宿主机映射端口（解决内外网地址冲突）
+    # 使用环境变量REDIS_HOST_IP，默认值需要替换为你的宿主机IP
+    command:
+      - redis-server
+      - /etc/redis/redis.conf
+      - --cluster-announce-ip
+      - ${REDIS_HOST_IP:-172.22.225.108}
+      - --cluster-announce-port
+      - "6381"
+      - --cluster-announce-bus-port
+      - "16381"
     volumes:
       - redis-data-3:/data
       - ./redis.conf:/etc/redis/redis.conf
