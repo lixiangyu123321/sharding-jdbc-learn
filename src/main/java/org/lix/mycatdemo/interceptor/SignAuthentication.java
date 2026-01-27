@@ -23,7 +23,7 @@ import java.util.concurrent.TimeUnit;
 import static org.lix.mycatdemo.filter.CommonError.*;
 
 @Slf4j
-@Service
+//@Service
 @RefreshScope
 public class SignAuthentication implements InitializingBean {
 

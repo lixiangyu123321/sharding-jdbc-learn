@@ -1,8 +1,10 @@
 package org.lix.mycatdemo.watermark.service;
 
+import com.alibaba.nacos.api.utils.StringUtils;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.lix.mycatdemo.watermark.type.ImageTypeEnum;
+import org.lix.mycatdemo.watermark.type.PositionEnum;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -94,10 +96,15 @@ public class ImageWatermarkService {
             errorMsg.put("alpha", "透明度必须在0.0-1.0之间");
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
-
+        if(!isAllowedPosition(position)){
+            log.info("不合法的位置输入");
+            errorMsg.put("position", "不合理的位置输入，位置必须在" + PositionEnum.values());
+            return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
+        }
 
         try {
             // 核心修复1：将MultipartFile的流复制到ByteArrayInputStream（可重置）
+            // QUESTION 这里为什么不直接用MultipleFile的输入流，待会试一下
             byte[] sourceBytes = file.getBytes();
             ByteArrayInputStream sourceIs = new ByteArrayInputStream(sourceBytes);
             String fileExt = getFileExtension(file.getOriginalFilename());
@@ -120,6 +127,18 @@ public class ImageWatermarkService {
         }
     }
 
+    private boolean isAllowedPosition(String position) {
+        if(StringUtils.isBlank(position)){
+            return false;
+        }
+        for(PositionEnum positionEnum : PositionEnum.values()){
+            if(positionEnum.name().equalsIgnoreCase(position)){
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * 添加图片水印（对外接口）
      * 若未传入水印图片，则使用默认水印图片
@@ -139,23 +158,28 @@ public class ImageWatermarkService {
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
         if (file.getSize() > MAX_FILE_SIZE) {
-            errorMsg.put("file", "源图片大小不能超过5MB");
+            errorMsg.put("file", "源图片大小不能超过10MB");
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
         String sourceContentType = file.getContentType();
         if (!isAllowedType(sourceContentType)) {
-            errorMsg.put("file", "源图片仅支持JPG/PNG/JPEG格式");
+            errorMsg.put("file", "图片仅支持JPG/PNG/JPEG格式");
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
-
         // 透明度校验
         if (alpha == null || alpha < 0 || alpha > 1) {
             errorMsg.put("alpha", "透明度必须在0.0-1.0之间");
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
+        if(!isAllowedPosition(position)){
+            log.info("不合法的位置输入");
+            errorMsg.put("position", "不合理的位置输入，位置必须在" + PositionEnum.values());
+            return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
+        }
 
         try {
             // 核心修复2：将源图片转为字节数组，避免流重置问题
+            // QUESTION 这里也是,为什么直接读取MultipleFile的信息到内存字节数组，直接读取到BufferedImage不行吗？
             byte[] sourceBytes = file.getBytes();
             ByteArrayInputStream sourceIs = new ByteArrayInputStream(sourceBytes);
             // 第一次读取源图片（用于缩放水印）
@@ -173,7 +197,7 @@ public class ImageWatermarkService {
             if (watermarkFile != null && !watermarkFile.isEmpty()) {
                 // 校验传入的水印图片
                 if (watermarkFile.getSize() > MAX_FILE_SIZE) {
-                    errorMsg.put("watermark", "水印图片大小不能超过5MB");
+                    errorMsg.put("watermark", "水印图片大小不能超过10MB");
                     return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
                 }
                 String watermarkContentType = watermarkFile.getContentType();
@@ -182,7 +206,9 @@ public class ImageWatermarkService {
                     return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
                 }
                 // 核心修复3：水印图片流使用try-with-resources确保关闭
+                // QUESTION 这里就是直接利用MultipleFile的InputStream进行相关操作的
                 try (InputStream watermarkIs = watermarkFile.getInputStream()) {
+                    // XXX 拿到InputStream，再转为BufferedImage，进行相应的操作后获得压缩水印图片的BufferedImage
                     watermarkImage = scaleWatermarkImage(watermarkIs, sourceImage, radio);
                 }
             } else {
@@ -200,6 +226,7 @@ public class ImageWatermarkService {
             }
 
             // 调用核心方法添加水印
+            // XXX 这里的fileExt只有在设置响应体格式的时候以及返回图片类型的时候有用
             String fileExt = getFileExtension(file.getOriginalFilename());
             try (OutputStream outputStream = response.getOutputStream()) {
                 addImageWatermarkToSource(sourceIs, outputStream, watermarkImage, alpha, position, fileExt);

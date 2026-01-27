@@ -31,7 +31,7 @@ import static org.lix.mycatdemo.filter.CommonError.INVALID_PARAM_USER_NOT_LOGIN;
 import static org.lix.mycatdemo.filter.CommonError.LOGIN_STATE_EXPIRED;
 
 @Slf4j
-@Component("mySignAuthenticationFilter")
+//@Component("mySignAuthenticationFilter")
 @RefreshScope  // 支持配置自动刷新（如果需要配置刷新功能）
 public class SignAuthenticationFilter implements Filter, InitializingBean {
 

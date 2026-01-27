@@ -13,7 +13,7 @@ import javax.servlet.http.HttpServletResponse;
 import static org.lix.mycatdemo.filter.CommonError.GATEWAY_PROCESS_FAILED;
 
 @Slf4j
-@Component
+//@Component
 public class SecurityInterceptor implements HandlerInterceptor {
     @Resource
     private SignAuthentication signAuthentication;
