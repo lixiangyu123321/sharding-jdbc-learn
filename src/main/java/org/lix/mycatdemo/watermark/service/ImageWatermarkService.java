@@ -25,7 +25,7 @@ public class ImageWatermarkService {
     /**
      * 最大文件大小 (5MB)
      */
-    private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+    private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
 
     /**
      * 水印图片缩放比例 (5%)
@@ -35,14 +35,18 @@ public class ImageWatermarkService {
     /**
      * 默认水印图片路径（硬编码，可根据实际路径修改）
      */
-    private static final String DEFAULT_WATERMARK_IMAGE_PATH = "D:/default_watermark.png";
+    private static final String DEFAULT_WATERMARK_IMAGE_PATH = "E:/default_watermark.jpg";
 
     /**
      * 缓存的默认水印图片（类初始化时加载，避免重复读取）
+     * XXX 将图片预先读取到内存中
      */
     private static BufferedImage DEFAULT_WATERMARK_IMAGE;
 
-    // 静态初始化：加载默认水印图片
+    /**
+     * 静态初始化，将图片信息加载值BufferedImage
+     * XXX 将水印图片预先读取到内存中
+     */
     static {
         try {
             File defaultWatermarkFile = new File(DEFAULT_WATERMARK_IMAGE_PATH);
@@ -77,6 +81,7 @@ public class ImageWatermarkService {
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
         if (file.getSize() > MAX_FILE_SIZE) {
+            // XXX 这里对图片内容限制一下，但是没有太大必要
             errorMsg.put("file", "图片大小不能超过5MB");
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
@@ -89,6 +94,7 @@ public class ImageWatermarkService {
             errorMsg.put("alpha", "透明度必须在0.0-1.0之间");
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
+
 
         try {
             // 核心修复1：将MultipartFile的流复制到ByteArrayInputStream（可重置）

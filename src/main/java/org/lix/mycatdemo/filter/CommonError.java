@@ -10,7 +10,11 @@ public class CommonError extends ReturnCode {
     public static final CommonError CSRF_CHECK_FAILED = new CommonError(20003, "CSRF检验失败!");
     public static final CommonError INVALID_URL = new CommonError(20004, "访问的URL有误!");
     public static final CommonError TASK_QUEUE_BUSY = new CommonError(20005, "当前任务排队人数太多了，请稍后再试。");
+    public static final CommonError INVALID_TASKID = new CommonError(20006, "没有找到该任务。");
+    public static final CommonError REQUEST_PARAM_ERROR = new CommonError(20007, "请求相关信息异常！");
     public static final CommonError LOGIN_STATE_EXPIRED = new CommonError(30005, "登录信息过期，请重新登录");
+    public static final CommonError REQUEST_STATE_EXPIRED = new CommonError(30006, "本次请求为过期请求!");
+    public static final CommonError REQUEST_STATE_REPEATED = new CommonError(30007, "本次请求为重复请求!");
 
     public CommonError(int code, String message) {
         super(code, message);

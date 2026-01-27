@@ -6,14 +6,14 @@ import org.springframework.context.annotation.Configuration;
 
 import javax.annotation.Resource;
 
-@Configuration
+//@Configuration
 public class FilterConfig {
 
-    @Resource
+    //@Resource
     private SignAuthenticationFilter mySignAuthenticationFilter;
 
 
-    @Bean
+    //@Bean
     public FilterRegistrationBean<SignAuthenticationFilter> signAuthenticationFilter(){
         FilterRegistrationBean<SignAuthenticationFilter> registrationBean = new FilterRegistrationBean<>();
         registrationBean.setFilter(mySignAuthenticationFilter);
