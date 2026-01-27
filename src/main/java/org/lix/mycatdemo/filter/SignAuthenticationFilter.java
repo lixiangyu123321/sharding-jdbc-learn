@@ -1,14 +1,18 @@
 package org.lix.mycatdemo.filter;
 
-
 import com.alibaba.cloud.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.*;
@@ -21,74 +25,99 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.concurrent.TimeUnit;
 
 import static org.lix.mycatdemo.filter.CommonError.INVALID_PARAM_USER_NOT_LOGIN;
 import static org.lix.mycatdemo.filter.CommonError.LOGIN_STATE_EXPIRED;
 
+@Slf4j
 @Component("mySignAuthenticationFilter")
-public class SignAuthenticationFilter implements Filter {
-
-    private static final Logger logger = LoggerFactory.getLogger(SignAuthenticationFilter.class);
+@RefreshScope  // 支持配置自动刷新（如果需要配置刷新功能）
+public class SignAuthenticationFilter implements Filter, InitializingBean {
 
     /**
      * Redis客户端
      */
-    //private StringRedisTemplate stringRedisTemplate;
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     /**
      * 有效期
+     * 使用 @Value 替代 @NacosValue，因为 @Value 在 Filter 中更可靠
+     * 配置已从 Nacos 加载到 Environment，@Value 可以直接读取
      */
-    private static long expireInMs = 5 * 60 * 1000L;
+    @Value("${signature.authentication.expireInMs:300000}")
+    private long expireInMs;
 
     /**
      * 签名算法密钥
+     * 使用 @Value 替代 @NacosValue，因为 @Value 在 Filter 中更可靠
+     * 配置已从 Nacos 加载到 Environment，@Value 可以直接读取
      */
-    private static String secretKey;
+    @Value("${signature.authentication.secretKey}")
+    private String secretKey;
 
     /**
      * 签名算法相关实例
      */
     private static Mac mac;
 
-    @Override
-    public void init(FilterConfig filterConfig) throws ServletException{
-        try {
-            //this.stringRedisTemplate = SpringContextUtil.getBean(StringRedisTemplate.class);
-
-            //expireInMs = VivoConfigManager.getLong("blue.canvas.request.expire");
-            expireInMs = Long.MAX_VALUE;
-            secretKey = "lixiangyu";
-            //secretKey = VivoConfigManager.getString("blue.canvas.request.sign.secret");
-
-            if (StringUtils.isBlank(secretKey)) {
-                throw new IllegalArgumentException("验签密钥配置为空：blue.canvas.request.sign.secret");
-            }
-            if (expireInMs <= 0) {
-                throw new IllegalArgumentException("请求有效期配置非法：blue.canvas.request.expire，值为" + expireInMs);
-            }
+//    @Override
+//    public void init(FilterConfig filterConfig) throws ServletException{
+//        try {
+//            if (StringUtils.isBlank(secretKey)) {
+//                throw new IllegalArgumentException("验签密钥配置为空：blue.canvas.request.sign.secret");
+//            }
+//            if (expireInMs <= 0) {
+//                throw new IllegalArgumentException("请求有效期配置非法：blue.canvas.request.expire，值为" + expireInMs);
+//            }
 //            if (stringRedisTemplate == null) {
 //                throw new RuntimeException("Spring上下文未找到StringRedisTemplate Bean");
 //            }
+//
+//            SecretKeySpec secretKeySpec = new SecretKeySpec(
+//                    secretKey.getBytes(StandardCharsets.UTF_8),
+//                    HMAC_SHA256_ALGORITHM
+//            );
+//            mac = Mac.getInstance(HMAC_SHA256_ALGORITHM);
+//            mac.init(secretKeySpec);
+//
+//            log.info("获得配置信息 secretKey:{}, expireInMs:{}", secretKey, expireInMs);
+//        } catch (Exception e) {
+//            ServletContext servletContext = filterConfig.getServletContext();
+//            WebApplicationContext webApplicationContext = WebApplicationContextUtils.getWebApplicationContext(servletContext);
+//            if (webApplicationContext instanceof ConfigurableApplicationContext) {
+//                ((ConfigurableApplicationContext) webApplicationContext).close();
+//            }
+//
+//            System.exit(1);
+//
+//            throw new ServletException("SignFilter初始化失败，应用已终止启动", e);
+//        }
+//    }
 
-            SecretKeySpec secretKeySpec = new SecretKeySpec(
-                    secretKey.getBytes(StandardCharsets.UTF_8),
-                    HMAC_SHA256_ALGORITHM
-            );
-            mac = Mac.getInstance(HMAC_SHA256_ALGORITHM);
-            mac.init(secretKeySpec);
-
-        } catch (Exception e) {
-            ServletContext servletContext = filterConfig.getServletContext();
-            WebApplicationContext webApplicationContext = WebApplicationContextUtils.getWebApplicationContext(servletContext);
-            if (webApplicationContext instanceof ConfigurableApplicationContext) {
-                ((ConfigurableApplicationContext) webApplicationContext).close();
-            }
-
-            System.exit(1);
-
-            throw new ServletException("SignFilter初始化失败，应用已终止启动", e);
-        }
-    }
+    // XXX 这种方式不行
+    // XXX 貌似PostConstruct 与 init方法冲突
+    // XXX 方法抛出异常，Bean初始化失败，spring容器启动失败
+//    @PostConstruct
+//    public void init() throws Exception{
+//        if (StringUtils.isBlank(secretKey)) {
+//                throw new IllegalArgumentException("验签密钥配置为空：blue.canvas.request.sign.secret");
+//            }
+//            if (expireInMs <= 0) {
+//                throw new IllegalArgumentException("请求有效期配置非法：blue.canvas.request.expire，值为" + expireInMs);
+//            }
+//            if (stringRedisTemplate == null) {
+//                throw new RuntimeException("Spring上下文未找到StringRedisTemplate Bean");
+//            }
+//
+//            SecretKeySpec secretKeySpec = new SecretKeySpec(
+//                    secretKey.getBytes(StandardCharsets.UTF_8),
+//                    HMAC_SHA256_ALGORITHM
+//            );
+//            mac = Mac.getInstance(HMAC_SHA256_ALGORITHM);
+//            mac.init(secretKeySpec);
+//    }
 
     /**
      * 验签：cookie中用户openId，有效期，防止重放，签名
@@ -101,9 +130,13 @@ public class SignAuthenticationFilter implements Filter {
         String requestTime = request.getHeader("x-request-time");
         String nonce = request.getHeader("x-nonce");
         String signature = request.getHeader("x-signature");
+        if (StringUtils.isBlank(requestURI) || StringUtils.isBlank(requestTime) || StringUtils.isBlank(signature)) {
+            ResponseWriter.writeErrorMsg(response, INVALID_PARAM_USER_NOT_LOGIN);
+            return;
+        }
+
         String[] openId = new String[1];
         Cookie[] cookies = request.getCookies();
-
         if(cookies != null){
             Arrays.stream(cookies)
                     .filter(cookie -> cookie.getName().equals("openid"))
@@ -120,26 +153,26 @@ public class SignAuthenticationFilter implements Filter {
             long time = Long.parseLong(requestTime);
             long now = System.currentTimeMillis();
             boolean isWithinExpire = Math.abs(now - time) <= expireInMs;
+            log.info("now:{}, time:{}, expireInMs:{}, diff:{}", now, time, expireInMs, now - time);
             if(!isWithinExpire){
                 // 请求过期
                 ResponseWriter.writeErrorMsg(response, LOGIN_STATE_EXPIRED);
                 return;
             }
 
-            //boolean isRepeat =  stringRedisTemplate.opsForValue().get(nonce) != null;
-            boolean isRepeat = false;
+            boolean isRepeat =  stringRedisTemplate.opsForValue().get(nonce) != null;
             if(isRepeat){
                 // 这里是请求重复，直接拒绝
                 // TODO 请求重复，没有对应的状态码
                 ResponseWriter.writeErrorMsg(response, LOGIN_STATE_EXPIRED);
                 return;
             }
-            //stringRedisTemplate.opsForValue().set(nonce, nonce, expireInMs, TimeUnit.MILLISECONDS);
+            stringRedisTemplate.opsForValue().set(nonce, nonce, expireInMs, TimeUnit.MILLISECONDS);
             // 验签
             StringBuilder sb = new StringBuilder();
             String serverData = sb.append(requestURI).append(requestTime).append(nonce).append(openId[0]).toString();
-            logger.info("服务端获取的所有数据:{}", serverData);
-            if(!verifySign(serverData, secretKey, signature)){
+            log.info("服务端获取的所有数据:{}", serverData);
+            if(!verifySign(serverData, signature)){
                 // 数据被篡改，签名异常
                 // TODO 签名异常，没有具体的状态码
                 ResponseWriter.writeErrorMsg(response, LOGIN_STATE_EXPIRED);
@@ -167,10 +200,9 @@ public class SignAuthenticationFilter implements Filter {
     /**
      * 生成HMAC-SHA256签名
      * @param data 原始数据
-     * @param secretKey 共享对称密钥
      * @return base64算法转换的文本数据，便于传输
      */
-    public String generateSign(String data, String secretKey){
+    public String generateSign(String data){
 
         byte[] signBytes = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
 
@@ -181,13 +213,12 @@ public class SignAuthenticationFilter implements Filter {
     /**
      * 验证签名
      * @param data 原始数据（服务端获取的请求数据）
-     * @param secretKey 共享密钥
      * @param clientSign 客户端传来的签名串
      * @return true=签名合法（数据未篡改），false=签名非法
      */
-    public boolean verifySign(String data, String secretKey, String clientSign) {
+    public boolean verifySign(String data, String clientSign) {
         try {
-            String serverSign = generateSign(data, secretKey);
+            String serverSign = generateSign(data);
             return MessageDigest.isEqual(
                     serverSign.getBytes(StandardCharsets.UTF_8),
                     clientSign.getBytes(StandardCharsets.UTF_8)
@@ -196,5 +227,25 @@ public class SignAuthenticationFilter implements Filter {
             // 任何异常都视为签名验证失败
             return false;
         }
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        if (StringUtils.isBlank(secretKey)) {
+            throw new IllegalArgumentException("验签密钥配置为空：blue.canvas.request.sign.secret");
+        }
+        if (expireInMs <= 0) {
+            throw new IllegalArgumentException("请求有效期配置非法：blue.canvas.request.expire，值为" + expireInMs);
+        }
+        if (stringRedisTemplate == null) {
+            throw new RuntimeException("Spring上下文未找到StringRedisTemplate Bean");
+        }
+
+        SecretKeySpec secretKeySpec = new SecretKeySpec(
+                secretKey.getBytes(StandardCharsets.UTF_8),
+                HMAC_SHA256_ALGORITHM
+        );
+        mac = Mac.getInstance(HMAC_SHA256_ALGORITHM);
+        mac.init(secretKeySpec);
     }
 }

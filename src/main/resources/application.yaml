@@ -6,7 +6,10 @@ spring:
 
   config:
     import:
+      - nacos:signature-authentication.yaml?public=
       - nacos:${spring.application.name}-${spring.profiles.active}.yaml
+      # 必须是命名空间id
+
 
   cloud:
     nacos:
