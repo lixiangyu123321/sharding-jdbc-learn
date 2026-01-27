@@ -52,7 +52,7 @@ public class ImageWatermarkController {
             @RequestParam(value = "position", defaultValue = "RIGHT_BOTTOM") String position,
             HttpServletResponse response) {
         log.info("开始添加文本水印");
-        ResponseEntity<?> ans =  imageWatermarkService.addImageWatermark(file, watermarkText, alpha, position, response);
+        ResponseEntity<?> ans =  imageWatermarkService.addTextWatermark(file, watermarkText, alpha, position, response);
         if(ans.getStatusCode().equals(HttpStatus.OK)) {
             // 成功表示写入响应，返回类型设置为了jpg
             return null;

@@ -69,7 +69,7 @@ public class ImageWatermarkService {
     /**
      * 添加文字水印（对外接口）
      */
-    public ResponseEntity<?> addImageWatermark(
+    public ResponseEntity<?> addTextWatermark(
             MultipartFile file,
             String watermarkText,
             Float alpha,
@@ -102,16 +102,17 @@ public class ImageWatermarkService {
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
 
-        try {
+        try(InputStream inputStream = file.getInputStream()) {
             // 核心修复1：将MultipartFile的流复制到ByteArrayInputStream（可重置）
             // QUESTION 这里为什么不直接用MultipleFile的输入流，待会试一下
-            byte[] sourceBytes = file.getBytes();
-            ByteArrayInputStream sourceIs = new ByteArrayInputStream(sourceBytes);
+            // XXX 这里没有必要使用内存字节流
+//            byte[] sourceBytes = file.getBytes();
+//            ByteArrayInputStream sourceIs = new ByteArrayInputStream(sourceBytes);
             String fileExt = getFileExtension(file.getOriginalFilename());
 
             // 调用改造后的核心方法（使用可重置的ByteArrayInputStream）
             try (OutputStream outputStream = response.getOutputStream()) {
-                addTextWatermark(sourceIs, outputStream, watermarkText, alpha, position, fileExt);
+                addTextWatermark(inputStream, outputStream, watermarkText, alpha, position, fileExt);
 
                 // 设置响应头
                 response.setContentType(ImageTypeEnum.of(fileExt).getMediaTypeString());
@@ -177,20 +178,20 @@ public class ImageWatermarkService {
             return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
         }
 
-        try {
-            // 核心修复2：将源图片转为字节数组，避免流重置问题
+        try(InputStream inputStream = file.getInputStream()) {
             // QUESTION 这里也是,为什么直接读取MultipleFile的信息到内存字节数组，直接读取到BufferedImage不行吗？
-            byte[] sourceBytes = file.getBytes();
-            ByteArrayInputStream sourceIs = new ByteArrayInputStream(sourceBytes);
+            // XXX 注意下面的reset操作，因为需要对流操作两次，所以需要支持reset的ByteArrayInputStream
+//            byte[] sourceBytes = file.getBytes();
+//            ByteArrayInputStream sourceIs = new ByteArrayInputStream(sourceBytes);
             // 第一次读取源图片（用于缩放水印）
-            BufferedImage sourceImage = ImageIO.read(sourceIs);
+            BufferedImage sourceImage = ImageIO.read(inputStream);
             if (sourceImage == null) {
                 errorMsg.put("file", "源图片文件损坏，无法读取");
                 return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
             }
 
             // 重置字节输入流（ByteArrayInputStream支持reset）
-            sourceIs.reset();
+            // sourceIs.reset();
 
             // 处理水印图片
             BufferedImage watermarkImage;
@@ -206,7 +207,6 @@ public class ImageWatermarkService {
                     return ResponseEntity.badRequest().body(buildResult(false, null, errorMsg));
                 }
                 // 核心修复3：水印图片流使用try-with-resources确保关闭
-                // QUESTION 这里就是直接利用MultipleFile的InputStream进行相关操作的
                 try (InputStream watermarkIs = watermarkFile.getInputStream()) {
                     // XXX 拿到InputStream，再转为BufferedImage，进行相应的操作后获得压缩水印图片的BufferedImage
                     watermarkImage = scaleWatermarkImage(watermarkIs, sourceImage, radio);
@@ -229,7 +229,7 @@ public class ImageWatermarkService {
             // XXX 这里的fileExt只有在设置响应体格式的时候以及返回图片类型的时候有用
             String fileExt = getFileExtension(file.getOriginalFilename());
             try (OutputStream outputStream = response.getOutputStream()) {
-                addImageWatermarkToSource(sourceIs, outputStream, watermarkImage, alpha, position, fileExt);
+                addImageWatermarkToSource(sourceImage, outputStream, watermarkImage, alpha, position, fileExt);
 
                 // 设置响应头
                 response.setContentType(ImageTypeEnum.of(fileExt).getMediaTypeString());
@@ -286,6 +286,7 @@ public class ImageWatermarkService {
         int textHeight = metrics.getHeight();
         int x = 0, y = 0;
 
+        // QUESTION 将位置信息的操作抽取
         String pos = position == null ? "RIGHT_BOTTOM" : position.toUpperCase();
         switch (pos) {
             case "LEFT_TOP":
@@ -314,17 +315,16 @@ public class ImageWatermarkService {
 
     /**
      * 添加图片水印（核心方法，InputStream输入源图片，OutputStream输出结果）
-     * @param sourceIs 源图片输入流（需为可重置的ByteArrayInputStream）
+     * @param sourceImage 源图片输入流（需为可重置的ByteArrayInputStream）
      * @param targetOs 结果输出流
      * @param watermarkImage 水印图片（已缩放）
      * @param alpha 透明度
      * @param position 水印位置
      * @param format 输出图片格式（jpeg/png）
      */
-    public void addImageWatermarkToSource(InputStream sourceIs, OutputStream targetOs,
+    public void addImageWatermarkToSource(BufferedImage sourceImage, OutputStream targetOs,
                                           BufferedImage watermarkImage, float alpha, String position, String format) throws IOException {
         // 读取源图片
-        BufferedImage sourceImage = ImageIO.read(sourceIs);
         if (sourceImage == null) {
             throw new IOException("源图片文件损坏，无法读取");
         }
@@ -378,7 +378,7 @@ public class ImageWatermarkService {
         // 计算目标尺寸：源图片的5%（等比例）
         int sourceWidth = sourceImage.getWidth();
         int sourceHeight = sourceImage.getHeight();
-        int targetWatermarkWidth = (int) (sourceWidth * WATERMARK_SCALE_RATIO);
+        int targetWatermarkWidth = (int) (sourceWidth * radio);
         double ratio = (double) originalWatermark.getHeight() / originalWatermark.getWidth();
         int targetWatermarkHeight = (int) (targetWatermarkWidth * ratio);
 
@@ -450,12 +450,7 @@ public class ImageWatermarkService {
         if (contentType == null) {
             return false;
         }
-        for (ImageTypeEnum imageTypeEnum : ImageTypeEnum.values()) {
-            if (contentType.equalsIgnoreCase(imageTypeEnum.getMediaTypeString())) {
-                return true;
-            }
-        }
-        return false;
+        return "MP4".equalsIgnoreCase(contentType);
     }
 
     /**
