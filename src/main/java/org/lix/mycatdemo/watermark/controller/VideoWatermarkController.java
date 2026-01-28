@@ -58,7 +58,7 @@ public class VideoWatermarkController {
             @RequestParam("watermark") MultipartFile watermark,
             @RequestParam(value = "alpha", defaultValue = "0.5") Float alpha,
             @RequestParam(value = "position", defaultValue = "RIGHT_BOTTOM") String position,
-            @RequestParam(value = "radio", defaultValue = "0.1") Float radio,
+            @RequestParam(value = "radio", defaultValue = "0.3") Float radio,
             HttpServletResponse response
     ){
         log.info("开始添加图片水印");
