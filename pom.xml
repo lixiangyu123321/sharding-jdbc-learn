@@ -46,6 +46,12 @@
             <artifactId>spring-cloud-starter-config</artifactId>
         </dependency>
 
+        <!--springSecurity-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
 <!--        nacos相关-->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
