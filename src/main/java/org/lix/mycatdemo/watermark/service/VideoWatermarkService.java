@@ -483,12 +483,7 @@ public class VideoWatermarkService {
         if (contentType == null) {
             return false;
         }
-        for (ImageTypeEnum imageTypeEnum : ImageTypeEnum.values()) {
-            if (contentType.equalsIgnoreCase(imageTypeEnum.getMediaTypeString())) {
-                return true;
-            }
-        }
-        return false;
+        return "mp4".equalsIgnoreCase(contentType);
     }
 
     private boolean isAllowedPosition(String position) {
@@ -720,9 +715,6 @@ public class VideoWatermarkService {
         }
     }
 
-    public void addImageWatermark(InputStream inputStream, OutputStream outputStream, String watermarkText, Float alpha, String position, String fileExt) throws IOException {
-
-    }
 
     private String getMimeType(String ext) {
         String lowerExt = ext.toLowerCase();

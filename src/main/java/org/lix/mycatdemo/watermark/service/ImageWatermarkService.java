@@ -450,7 +450,13 @@ public class ImageWatermarkService {
         if (contentType == null) {
             return false;
         }
-        return "MP4".equalsIgnoreCase(contentType);
+        for(ImageTypeEnum imageType : ImageTypeEnum.values()) {
+            if (imageType.name().equals(contentType)) {
+                return true;
+            }
+        }
+        return false;
+//        return "MP4".equalsIgnoreCase(contentType);
     }
 
     /**
