@@ -1,5 +1,6 @@
 package org.lix.mycatdemo.watermark.service;
 
+import com.alibaba.nacos.common.executor.NameThreadFactory;
 import lombok.extern.slf4j.Slf4j;
 import net.coobird.thumbnailator.Thumbnails;
 import org.apache.tomcat.util.http.fileupload.IOUtils;
@@ -25,6 +26,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.*;
 
 @Slf4j
 @Service
@@ -69,6 +71,31 @@ public class WatermarkService implements InitializingBean, DisposableBean {
     private FFmpegService ffmpegService;
 
     /**
+     * 使用线程池处理任务
+     */
+    private ExecutorService executorService;
+
+    /**
+     * 线程池核心线程数
+     */
+    private static final int CORE_POOL_SIZE = 5;
+
+    /**
+     * 线程池最大线程数
+     */
+    private static final int MAX_POOL_SIZE = 10;
+
+    /**
+     * 线程池空闲线程存活时间（秒）
+     */
+    private static final long KEEP_ALIVE_TIME = 60L;
+
+    /**
+     * 线程池队列容量
+     */
+    private static final int QUEUE_CAPACITY = 100;
+
+    /**
      * javacv以及ffmpeg支持的类型
      */
     private List<String> validImageType = Arrays.asList("jpg", "jpeg", "png", "gif");
@@ -86,6 +113,26 @@ public class WatermarkService implements InitializingBean, DisposableBean {
         log.info("默认水印图片加载成功，路径：{}", DEFAULT_WATERMARK_IMAGE_PATH);
         hasFFmpeg = ffmpegService.checkFFmpegInstalled();
         DEFAULT_WATERMARK_LOCAL_PATH =  getClasspathResourceToLocalPath(DEFAULT_WATERMARK_IMAGE_PATH);
+
+        // 初始化线程池
+        initThreadPool();
+    }
+
+    /**
+     * 初始化线程池
+     */
+    private void initThreadPool() {
+        executorService = new ThreadPoolExecutor(
+                CORE_POOL_SIZE,
+                MAX_POOL_SIZE,
+                KEEP_ALIVE_TIME,
+                TimeUnit.SECONDS,
+                new LinkedBlockingQueue<>(QUEUE_CAPACITY),
+                new NameThreadFactory("watermark-thread"),
+                new ThreadPoolExecutor.CallerRunsPolicy()
+        );
+        log.info("水印服务线程池初始化成功 - 核心线程数: {}, 最大线程数: {}, 队列容量: {}", 
+                CORE_POOL_SIZE, MAX_POOL_SIZE, QUEUE_CAPACITY);
     }
 
     /**
@@ -94,6 +141,9 @@ public class WatermarkService implements InitializingBean, DisposableBean {
      */
     @Override
     public void destroy() throws Exception {
+        // 关闭线程池
+        shutdownThreadPool();
+
         // 删除临时水印文件
         if (DEFAULT_WATERMARK_LOCAL_PATH != null && !DEFAULT_WATERMARK_LOCAL_PATH.isEmpty()) {
             try {
@@ -115,18 +165,80 @@ public class WatermarkService implements InitializingBean, DisposableBean {
     }
 
     /**
+     * 关闭线程池
+     */
+    private void shutdownThreadPool() {
+        if (executorService != null && !executorService.isShutdown()) {
+            log.info("开始关闭水印服务线程池...");
+            executorService.shutdown();
+            try {
+                // 等待已提交的任务完成，最多等待30秒
+                if (!executorService.awaitTermination(30, TimeUnit.SECONDS)) {
+                    log.warn("线程池在30秒内未能正常关闭，强制关闭...");
+                    executorService.shutdownNow();
+                    // 再等待5秒
+                    if (!executorService.awaitTermination(5, TimeUnit.SECONDS)) {
+                        log.error("线程池强制关闭后仍有任务未完成");
+                    }
+                }
+                log.info("水印服务线程池已成功关闭");
+            } catch (InterruptedException e) {
+                log.warn("等待线程池关闭时被中断，强制关闭线程池", e);
+                executorService.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
+    }
+
+    /**
      * 基于文件系统做一下吧
      * @param path 绝对路径
      * @return
      * @throws Exception
      */
-    public String watermarkAppend(String path) throws Exception {
+    public String watermarkAppend(String path, boolean useFFmpeg, boolean isScale) throws Exception {
+        // 将加水印任务提交到线程池执行
+        Future<String> future = executorService.submit(() -> {
+            try {
+                return executeWatermarkAppend(path, useFFmpeg, isScale);
+            } catch (Exception e) {
+                log.error("执行加水印任务时发生异常，文件路径: {}", path, e);
+                throw new RuntimeException("加水印任务执行失败: " + e.getMessage(), e);
+            }
+        });
+
+        try {
+            // 等待任务完成并返回结果（保持原有同步行为）
+            return future.get();
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) {
+                throw (RuntimeException) cause;
+            } else if (cause instanceof Exception) {
+                throw (Exception) cause;
+            } else {
+                throw new Exception("加水印任务执行失败", cause);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.error("等待加水印任务完成时被中断，文件路径: {}", path, e);
+            throw new Exception("加水印任务被中断", e);
+        }
+    }
+
+    /**
+     * 执行加水印的实际逻辑（原有代码逻辑）
+     * @param path 绝对路径
+     * @return 加水印后的文件路径
+     * @throws Exception
+     */
+    private String executeWatermarkAppend(String path, boolean useFFmpeg, boolean isScale) throws Exception {
         String fileExt = path.substring(path.lastIndexOf(".") + 1);
         String fileName = UUID.randomUUID().toString().replace("-", "") + "." + fileExt;
 
         // TODO 这里的临时文件需要被安全删除
         if(validVideoType.contains(fileExt)){
-            if(hasFFmpeg){
+            if(hasFFmpeg && useFFmpeg){
                 String outputVideoPath = "F:/" + fileName;
                 File outputFile = new File(outputVideoPath);
                 if (!outputFile.getParentFile().exists()) {
@@ -158,7 +270,20 @@ public class WatermarkService implements InitializingBean, DisposableBean {
 
                 // XXX 基于上面的描述进行代码调整
 
-                ffmpegService.watermarkappend(path, outputVideoPath, DEFAULT_WATERMARK_LOCAL_PATH, null);
+                // TODO 统一处理临时文件
+                // XXX 下面是进行缩放的操作
+                if(isScale){
+                     Path scaledWatermark = Files.createTempFile("scaled_watermark_", ".png");
+                     scaleWatermark(DEFAULT_WATERMARK_IMAGE, new File(path), scaledWatermark.toFile(), WATERMARK_SCALE_RATIO);
+                     ffmpegService.watermarkappend(path, outputVideoPath, scaledWatermark.toAbsolutePath().toString(), null);
+                }
+                // Path scaledWatermark = Files.createTempFile("scaled_watermark_", ".png");
+                // scaleWatermark(DEFAULT_WATERMARK_IMAGE, new File(path), scaledWatermark.toFile(), WATERMARK_SCALE_RATIO);
+                // ffmpegService.watermarkappend(path, outputVideoPath, scaledWatermark.toAbsolutePath().toString(), null);
+                else{
+                    ffmpegService.watermarkappend(path, outputVideoPath, DEFAULT_WATERMARK_LOCAL_PATH, null);
+                }
+
                 return "F:/" + fileName;
             } else {
                 try(InputStream inputStream = new FileInputStream(path);
@@ -185,24 +310,18 @@ public class WatermarkService implements InitializingBean, DisposableBean {
      * @return 本地临时文件的绝对路径
      */
     private String getClasspathResourceToLocalPath(String classpathResource) throws Exception {
-        // 1. 读取类路径下的水印图片
         InputStream resourceStream = getClass().getClassLoader().getResourceAsStream(classpathResource);
         if (resourceStream == null) {
             log.error("类路径下未找到水印图片：{}", classpathResource);
             throw new FileNotFoundException("类路径下未找到水印图片：" + classpathResource);
         }
 
-        // 2. 创建本地临时文件（放在F盘，避免权限问题）
-        String tempWatermarkName = "temp_watermark_" + System.currentTimeMillis() + ".png";
-        File tempWatermarkFile = new File("F:/", tempWatermarkName);
+        Path tempWatermarkPath = Files.createTempFile("temp_watermark_", ".png");
 
-        // 3. 将类路径资源复制到临时文件
-        Files.copy(resourceStream, tempWatermarkFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        Files.copy(resourceStream, tempWatermarkPath, StandardCopyOption.REPLACE_EXISTING);
         resourceStream.close();
 
-        // 4. 返回临时文件的绝对路径（FFmpeg可访问）
-        String absolutePath = tempWatermarkFile.getCanonicalPath();
-        log.info("类路径水印资源已复制到本地：{}", absolutePath);
+        String absolutePath = tempWatermarkPath.toAbsolutePath().toString();
         return absolutePath;
     }
 
@@ -228,6 +347,28 @@ public class WatermarkService implements InitializingBean, DisposableBean {
 //            // return storageExecutor.generateNWUrl("key");
 //        }
 //    }
+
+    /**
+     * 缩放水印图片，直接到文件中
+     */
+    private void scaleWatermark(BufferedImage originalWatermark, File file, File targetFile, Float ratio) throws IOException{
+        int targetWatermarkWidth = originalWatermark.getWidth();
+        int targetWatermarkHeight = originalWatermark.getHeight();
+        try(FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(file);
+            OutputStream bos = Files.newOutputStream(targetFile.toPath());){
+            grabber.start();
+            int sourceWidth = grabber.getImageWidth();
+            targetWatermarkWidth = (int) (sourceWidth * ratio);
+            double tagetRatio = (double) originalWatermark.getHeight() / originalWatermark.getWidth();
+            targetWatermarkHeight = (int) (targetWatermarkWidth * tagetRatio);
+            Thumbnails.of(originalWatermark)
+                    .size(targetWatermarkWidth, targetWatermarkHeight)
+                    .keepAspectRatio(true)
+                    .outputQuality(1.0f)
+                    .outputFormat("png")
+                    .toOutputStream(bos);
+        }
+    }
 
     /**
      * 参数为输入输出流，其关闭操作由上层进行处理
@@ -346,12 +487,12 @@ public class WatermarkService implements InitializingBean, DisposableBean {
     /**
      * 缩放水印图片（传入缓存的BufferedImage，默认水印专用）
      */
-    private BufferedImage scaleWatermarkImage(BufferedImage originalWatermark, BufferedImage sourceImage, Float radio) throws IOException {
+    private BufferedImage scaleWatermarkImage(BufferedImage originalWatermark, BufferedImage sourceImage, Float ratio) throws IOException {
         // 计算目标尺寸：源图片的10%（等比例）
         int sourceWidth = sourceImage.getWidth();
-        int targetWatermarkWidth = (int) (sourceWidth * radio);
-        double ratio = (double) originalWatermark.getHeight() / originalWatermark.getWidth();
-        int targetWatermarkHeight = (int) (targetWatermarkWidth * ratio);
+        int targetWatermarkWidth = (int) (sourceWidth * ratio);
+        double tagetRatio = (double) originalWatermark.getHeight() / originalWatermark.getWidth();
+        int targetWatermarkHeight = (int) (targetWatermarkWidth * tagetRatio);
 
         // 使用Thumbnails缩放
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
@@ -444,20 +585,22 @@ public class WatermarkService implements InitializingBean, DisposableBean {
         int watermarkHeight = watermarkImage.getHeight();
 
         int x = 0, y = 0;
+        int marginX = Math.min((int) Math.ceil(watermarkWidth * 0.01f), 20);
+        int marginY = Math.min((int) Math.ceil(watermarkHeight * 0.01f), 20);
         String pos = position == null ? "RIGHT_BOTTOM" : position.toUpperCase();
 
         switch (pos) {
             case "LEFT_TOP":
-                x = 20;
-                y = 20;
+                x = marginX;
+                y = marginY;
                 break;
             case "LEFT_BOTTOM":
-                x = 20;
-                y = Math.max(20, sourceHeight - watermarkHeight - 20);
+                x = marginX;
+                y = Math.max(marginY, sourceHeight - watermarkHeight - marginY);
                 break;
             case "RIGHT_TOP":
-                x = Math.max(20, sourceWidth - watermarkWidth - 20);
-                y = 20;
+                x = Math.max(marginX, sourceWidth - watermarkWidth - marginX);
+                y = marginY;
                 break;
             case "CENTER":
                 x = (sourceWidth - watermarkWidth) / 2;
@@ -465,8 +608,8 @@ public class WatermarkService implements InitializingBean, DisposableBean {
                 break;
             case "RIGHT_BOTTOM":
             default:
-                x = Math.max(20, sourceWidth - watermarkWidth - 20);
-                y = Math.max(20, sourceHeight - watermarkHeight - 20);
+                x = Math.max(marginX, sourceWidth - watermarkWidth - marginX);
+                y = Math.max(marginY, sourceHeight - watermarkHeight - marginY);
                 break;
         }
         return new Point(x, y);

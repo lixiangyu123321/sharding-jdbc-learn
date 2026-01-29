@@ -169,15 +169,14 @@ public class FFmpegService {
         // 关键修复：在后台线程中读取输出流，避免缓冲区满导致进程阻塞
         StringBuilder outputBuffer = new StringBuilder();
         Thread outputReader = new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(process.getInputStream()))) {
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
                 String line;
                 while ((line = reader.readLine()) != null) {
                     outputBuffer.append(line).append("\n");
-                    // 可选：打印进度信息（FFmpeg 会输出处理进度）
-                    if (line.contains("time=") || line.contains("frame=")) {
-                        log.debug("FFmpeg 进度: {}", line);
-                    }
+//                    // 可选：打印进度信息（FFmpeg 会输出处理进度）
+//                    if (line.contains("time=") || line.contains("frame=")) {
+//                        log.debug("FFmpeg 进度: {}", line);
+//                    }
                 }
             } catch (IOException e) {
                 log.warn("读取 FFmpeg 输出流失败", e);
@@ -201,11 +200,11 @@ public class FFmpegService {
             if (exitCode == 0) {
                 log.info("水印添加成功！输出文件：{}", cmd[cmd.length - 1]);
             } else {
-                String errorOutput = outputBuffer.length() > 0 
-                    ? outputBuffer.toString() 
+                String errorOutput = outputBuffer.length() > 0
+                    ? outputBuffer.toString()
                     : "（无输出信息）";
                 log.error("FFmpeg 命令执行失败，退出码：{}，输出：{}", exitCode, errorOutput);
-                throw new RuntimeException("FFmpeg 命令执行失败，退出码：" + exitCode + 
+                throw new RuntimeException("FFmpeg 命令执行失败，退出码：" + exitCode +
                     "，错误信息：" + errorOutput);
             }
         } catch (InterruptedException e) {
