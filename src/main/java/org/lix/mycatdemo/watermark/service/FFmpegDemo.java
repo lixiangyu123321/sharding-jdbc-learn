@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * 修复文字水印参数解析问题的 FFmpeg 水印工具类
@@ -13,6 +15,33 @@ import java.io.InputStreamReader;
 public class FFmpegDemo {
     // 已配置环境变量，直接用 ffmpeg 即可
     private static final String FFMPEG_PATH = "ffmpeg";
+    private static final String FFPROBE_PATH = "ffprobe";
+    
+    /**
+     * 视频尺寸信息类
+     */
+    public static class VideoDimension {
+        private final int width;
+        private final int height;
+        
+        public VideoDimension(int width, int height) {
+            this.width = width;
+            this.height = height;
+        }
+        
+        public int getWidth() {
+            return width;
+        }
+        
+        public int getHeight() {
+            return height;
+        }
+        
+        @Override
+        public String toString() {
+            return "VideoDimension{width=" + width + ", height=" + height + "}";
+        }
+    }
     
     /**
      * 判断当前操作系统是否为 Windows
@@ -260,6 +289,118 @@ public class FFmpegDemo {
     }
 
     /**
+     * 获取视频文件的宽度和高度
+     * 优先使用 ffprobe 命令，如果不可用则使用 ffmpeg -i 命令解析输出
+     * 
+     * @param videoPath 视频文件路径
+     * @return VideoDimension 包含宽度和高度的对象
+     * @throws IOException 文件不存在或命令执行失败
+     * @throws InterruptedException 命令执行被中断
+     */
+    public static VideoDimension getVideoDimension(String videoPath) throws IOException, InterruptedException {
+        // 校验文件是否存在
+        ensureFileExists(videoPath, "视频文件");
+        
+        // 优先尝试使用 ffprobe（更专业，输出更简洁）
+        VideoDimension dimension = tryGetDimensionWithFFprobe(videoPath);
+        if (dimension != null) {
+            return dimension;
+        }
+        
+        // 如果 ffprobe 不可用，使用 ffmpeg -i 解析输出
+        return getDimensionWithFFmpeg(videoPath);
+    }
+    
+    /**
+     * 使用 ffprobe 获取视频尺寸（推荐方式）
+     */
+    private static VideoDimension tryGetDimensionWithFFprobe(String videoPath) {
+        try {
+            String[] cmd = {
+                    FFPROBE_PATH,
+                    "-v", "error",
+                    "-select_streams", "v:0",
+                    "-show_entries", "stream=width,height",
+                    "-of", "csv=s=x:p=0",
+                    videoPath
+            };
+            
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+            
+            StringBuilder output = new StringBuilder();
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    output.append(line);
+                }
+            }
+            
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                String result = output.toString().trim();
+                // ffprobe 输出格式: widthxheight (例如: 1920x1080)
+                if (result.contains("x")) {
+                    String[] parts = result.split("x");
+                    if (parts.length == 2) {
+                        int width = Integer.parseInt(parts[0].trim());
+                        int height = Integer.parseInt(parts[1].trim());
+                        return new VideoDimension(width, height);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // ffprobe 不可用或执行失败，返回 null，后续使用 ffmpeg 方式
+            System.out.println("ffprobe 不可用，将使用 ffmpeg 方式获取视频尺寸: " + e.getMessage());
+        }
+        return null;
+    }
+    
+    /**
+     * 使用 ffmpeg -i 命令获取视频尺寸（备用方式）
+     */
+    private static VideoDimension getDimensionWithFFmpeg(String videoPath) throws IOException, InterruptedException {
+        String[] cmd = {
+                FFMPEG_PATH,
+                "-i", videoPath
+        };
+        
+        ProcessBuilder pb = new ProcessBuilder(cmd);
+        pb.redirectErrorStream(true);
+        Process process = pb.start();
+        
+        StringBuilder output = new StringBuilder();
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                output.append(line).append(System.lineSeparator());
+            }
+        }
+        
+        // ffmpeg -i 命令会返回非零退出码（这是正常的，因为它只是显示信息）
+        process.waitFor();
+        
+        // 解析输出，查找视频流信息
+        // 典型输出格式: "Stream #0:0: Video: h264, yuv420p, 1920x1080 [SAR 1:1 DAR 16:9], 25 fps, 25 tbr, 1200k tbn, 50 tbc"
+        String outputStr = output.toString();
+        
+        // 使用正则表达式匹配分辨率: 数字x数字
+        Pattern pattern = Pattern.compile("(\\d{2,5})x(\\d{2,5})");
+        Matcher matcher = pattern.matcher(outputStr);
+        
+        if (matcher.find()) {
+            int width = Integer.parseInt(matcher.group(1));
+            int height = Integer.parseInt(matcher.group(2));
+            return new VideoDimension(width, height);
+        }
+        
+        throw new IOException("无法从视频文件中解析出宽度和高度信息。输出: " + outputStr);
+    }
+    
+    /**
      * 获取系统默认字体路径
      * Windows: C:/Windows/Fonts/msyh.ttc (微软雅黑)
      * Linux: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf (DejaVu Sans) 或其他常见字体
@@ -297,25 +438,103 @@ public class FFmpegDemo {
         }
     }
 
+    /**
+     * 测试获取视频尺寸的方法执行时间
+     * 
+     * @param videoPath 视频文件路径
+     * @param testTimes 测试次数，默认10次
+     */
+    public static void testGetVideoDimension(String videoPath, int testTimes) {
+        if (testTimes <= 0) {
+            testTimes = 10;
+        }
+        
+        System.out.println("========================================");
+        System.out.println("开始测试获取视频尺寸方法执行时间");
+        System.out.println("视频文件: " + videoPath);
+        System.out.println("测试次数: " + testTimes);
+        System.out.println("========================================");
+        
+        long totalTime = 0;
+        long minTime = Long.MAX_VALUE;
+        long maxTime = Long.MIN_VALUE;
+        VideoDimension firstResult = null;
+        
+        for (int i = 1; i <= testTimes; i++) {
+            try {
+                long startTime = System.currentTimeMillis();
+                VideoDimension dimension = getVideoDimension(videoPath);
+                long endTime = System.currentTimeMillis();
+                long elapsedTime = endTime - startTime;
+                
+                totalTime += elapsedTime;
+                minTime = Math.min(minTime, elapsedTime);
+                maxTime = Math.max(maxTime, elapsedTime);
+                
+                if (i == 1) {
+                    firstResult = dimension;
+                }
+                
+                System.out.printf("第 %d 次: %s, 耗时: %d ms%n", i, dimension, elapsedTime);
+                
+            } catch (Exception e) {
+                System.err.println("第 " + i + " 次测试失败: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+        
+        System.out.println("========================================");
+        System.out.println("测试结果统计:");
+        System.out.println("视频尺寸: " + (firstResult != null ? firstResult : "获取失败"));
+        System.out.println("平均耗时: " + (totalTime / testTimes) + " ms");
+        System.out.println("最小耗时: " + (minTime == Long.MAX_VALUE ? "N/A" : minTime + " ms"));
+        System.out.println("最大耗时: " + (maxTime == Long.MIN_VALUE ? "N/A" : maxTime + " ms"));
+        System.out.println("总耗时: " + totalTime + " ms");
+        System.out.println("========================================");
+    }
+    
     // 测试示例
     public static void main(String[] args) {
         try {
             System.out.println("当前操作系统: " + System.getProperty("os.name"));
             
+            // 测试获取视频尺寸
+            String testVideo = isWindows() ? "F:/aaa.mp4" : "/tmp/aaa.mp4";
+            File videoFile = new File(testVideo);
+            if (videoFile.exists()) {
+                System.out.println("\n========== 测试获取视频尺寸 ==========");
+                testGetVideoDimension(testVideo, 10);
+            } else {
+                System.out.println("测试视频文件不存在: " + testVideo);
+                System.out.println("跳过视频尺寸测试");
+            }
+            
             // 1. 图片水印（已验证可用）
-            String inputVideo = isWindows() ? "F:/aaa.mp4" : "/tmp/aaa.mp4";
-            String outputWithImage = isWindows() ? "F:/test_with_image_watermark.mp4" : "/tmp/test_with_image_watermark.mp4";
-            String watermarkImage = isWindows() ? "F:/default_watermark.png" : "/tmp/default_watermark.png";
-            // 这里不传或传 null，使用默认 LEFT_TOP；也可以传 RIGHT_BOTTOM / CENTER 等
-            addImageWatermark(inputVideo, outputWithImage, watermarkImage, null);
-
-            // 2. 修复后的文字水印（自动检测系统字体路径）
-            String outputWithText = isWindows() ? "F:/test_with_text_watermark.mp4" : "/tmp/test_with_text_watermark.mp4";
-            String text = "我的专属视频";
-            String fontPath = getDefaultFontPath(); // 自动获取系统默认字体路径
-            System.out.println("使用字体路径: " + fontPath);
-            // 这里不传或传 null，使用默认 RIGHT_BOTTOM；也可以传 LEFT_TOP / CENTER 等
-            addTextWatermark(inputVideo, outputWithText, text, null, fontPath);
+//            String inputVideo = isWindows() ? "F:/aaa.mp4" : "/tmp/aaa.mp4";
+//            String outputWithImage = isWindows() ? "F:/test_with_image_watermark.mp4" : "/tmp/test_with_image_watermark.mp4";
+//            String watermarkImage = isWindows() ? "F:/default_watermark.png" : "/tmp/default_watermark.png";
+//
+//            File inputFile = new File(inputVideo);
+//            File watermarkFile = new File(watermarkImage);
+//            if (inputFile.exists() && watermarkFile.exists()) {
+//                // 这里不传或传 null，使用默认 LEFT_TOP；也可以传 RIGHT_BOTTOM / CENTER 等
+//                addImageWatermark(inputVideo, outputWithImage, watermarkImage, null);
+//            } else {
+//                System.out.println("输入文件或水印图片不存在，跳过图片水印测试");
+//            }
+//
+//            // 2. 修复后的文字水印（自动检测系统字体路径）
+//            String outputWithText = isWindows() ? "F:/test_with_text_watermark.mp4" : "/tmp/test_with_text_watermark.mp4";
+//            String text = "我的专属视频";
+//            String fontPath = getDefaultFontPath(); // 自动获取系统默认字体路径
+//            System.out.println("使用字体路径: " + fontPath);
+//
+//            if (inputFile.exists()) {
+//                // 这里不传或传 null，使用默认 RIGHT_BOTTOM；也可以传 LEFT_TOP / CENTER 等
+//                addTextWatermark(inputVideo, outputWithText, text, null, fontPath);
+//            } else {
+//                System.out.println("输入文件不存在，跳过文字水印测试");
+//            }
 
         } catch (Exception e) {
             e.printStackTrace();

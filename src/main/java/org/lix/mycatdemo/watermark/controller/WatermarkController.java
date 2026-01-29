@@ -24,9 +24,10 @@ public class WatermarkController {
     @RequestMapping("/append")
     public String append(@RequestParam("filePath") String filePath,
                          @RequestParam("useFFmpeg") boolean useFFmpeg,
-                         @RequestParam("isScale") boolean isScale) throws Exception {
+                         @RequestParam("isScale") boolean isScale,
+                         @RequestParam("useFFprobe") boolean useFFprobe) throws Exception {
         log.info("开始进行添加水印");
-        return watermarkService.watermarkAppend(filePath, useFFmpeg, isScale);
+        return watermarkService.executeWatermarkAppend(filePath, useFFmpeg, isScale, useFFprobe);
     }
 
     @ExceptionHandler(Exception.class)
