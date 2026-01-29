@@ -59,9 +59,9 @@ Spring Security 为不同的认证方式提供了现成的 `Authentication` 实�
 #### 方式1：通过 `SecurityContextHolder` 手动获取（任意位置可用）
 最通用的方式，Service、Filter、工具类等**任意位置**都能使用：
 ```java
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.org.lix.mycatdemo.security.core.Authentication;
+import org.springframework.org.lix.mycatdemo.security.core.context.SecurityContextHolder;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetails;
 
 // 获取 Authentication 对象
 Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -88,7 +88,7 @@ if (authentication.isAuthenticated() && !(authentication instanceof AnonymousAut
 #### 方式2：Controller 方法参数直接注入（推荐，简洁）
 在 Controller 中，可直接将 `Authentication` 作为方法参数，框架自动注入，无需手动获取：
 ```java
-import org.springframework.security.core.Authentication;
+import org.springframework.org.lix.mycatdemo.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -109,8 +109,8 @@ public class UserController {
 #### 方式3：使用 `@AuthenticationPrincipal` 注解（精准获取用户信息）
 如果只需要 `Authentication` 中的 `principal`（用户核心信息），可使用 `@AuthenticationPrincipal` 注解，直接注入，更精准：
 ```java
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.org.lix.mycatdemo.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
 

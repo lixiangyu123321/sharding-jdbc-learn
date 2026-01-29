@@ -80,22 +80,22 @@ Spring Boot内置了对Basic认证的支持，无需手动解析请求头，通�
 <!-- Spring Security（实现认证核心） -->
 <dependency>
   <groupId>org.springframework.boot</groupId>
-  <artifactId>spring-boot-starter-security</artifactId>
+  <artifactId>spring-boot-starter-org.lix.mycatdemo.security</artifactId>
 </dependency>
 ```
 ##### 步骤2：配置Basic认证（Java配置类）
 ```java
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.User;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetails;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetailsService;
+import org.springframework.org.lix.mycatdemo.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.crypto.password.PasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.org.lix.mycatdemo.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity

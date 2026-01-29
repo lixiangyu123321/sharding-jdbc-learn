@@ -14,11 +14,11 @@ Spring Security 支持配置**多个 `SecurityFilterChain`**（不同URL匹配�
 ##### 步骤1：定义父级 `AuthenticationManager`（共享通用认证逻辑）
 ```java
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.authentication.AuthenticationManager;
+import org.springframework.org.lix.mycatdemo.security.authentication.ProviderManager;
+import org.springframework.org.lix.mycatdemo.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetailsService;
+import org.springframework.org.lix.mycatdemo.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -43,11 +43,11 @@ public class SharedAuthManagerConfig {
 ##### 步骤2：定义两个子级 `ProviderManager`（专属认证逻辑）
 ```java
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.authentication.AuthenticationManager;
+import org.springframework.org.lix.mycatdemo.security.authentication.ProviderManager;
+import org.springframework.org.lix.mycatdemo.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetailsService;
+import org.springframework.org.lix.mycatdemo.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -99,8 +99,8 @@ public class SubAuthManagerConfig {
 ##### 步骤3：配置多 `SecurityFilterChain` 关联不同 `ProviderManager`
 ```java
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.org.lix.mycatdemo.security.web.SecurityFilterChain;
 import org.springframework.stereotype.Configuration;
 
 @Configuration

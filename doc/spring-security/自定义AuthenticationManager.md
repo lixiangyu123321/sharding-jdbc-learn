@@ -8,18 +8,18 @@
 ```java
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoderFactories;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.authentication.ProviderManager;
+import org.springframework.org.lix.mycatdemo.security.authentication.AuthenticationManager;
+import org.springframework.org.lix.mycatdemo.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.User;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetails;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetailsService;
+import org.springframework.org.lix.mycatdemo.security.crypto.password.PasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.crypto.password.PasswordEncoderFactories;
+import org.springframework.org.lix.mycatdemo.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.org.lix.mycatdemo.security.web.SecurityFilterChain;
+import org.springframework.org.lix.mycatdemo.security.authentication.ProviderManager;
 
 @Configuration
 @EnableWebSecurity
@@ -80,8 +80,8 @@ public class SecurityConfig {
 在 REST 接口中注入上述 `AuthenticationManager`，实现自定义用户名/密码认证：
 ```java
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.org.lix.mycatdemo.security.authentication.AuthenticationManager;
+import org.springframework.org.lix.mycatdemo.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
@@ -128,11 +128,11 @@ public class LoginController {
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetailsService;
+import org.springframework.org.lix.mycatdemo.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
@@ -177,19 +177,19 @@ public class SecurityConfig {
 ```java
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoderFactories;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.config.Customizer;
+import org.springframework.org.lix.mycatdemo.security.authentication.AuthenticationManager;
+import org.springframework.org.lix.mycatdemo.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.User;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetails;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetailsService;
+import org.springframework.org.lix.mycatdemo.security.crypto.password.PasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.crypto.password.PasswordEncoderFactories;
+import org.springframework.org.lix.mycatdemo.security.provisioning.InMemoryUserDetailsManager;
+import org.springframework.org.lix.mycatdemo.security.web.SecurityFilterChain;
+import org.springframework.org.lix.mycatdemo.security.authentication.ProviderManager;
+import org.springframework.org.lix.mycatdemo.security.config.Customizer;
 
 @Configuration
 @EnableWebSecurity

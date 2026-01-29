@@ -202,7 +202,7 @@ services:
       - discovery.seed_hosts=es-node2
       - cluster.initial_master_nodes=es-node1,es-node2
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - xpack.security.enabled=false
+      - xpack.org.lix.mycatdemo.security.enabled=false
       - xpack.monitoring.enabled=false
       # 允许单节点运行，自动调整副本
       - action.auto_create_index=true
@@ -243,7 +243,7 @@ services:
       - discovery.seed_hosts=es-node1
       - cluster.initial_master_nodes=es-node1,es-node2
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - xpack.security.enabled=false
+      - xpack.org.lix.mycatdemo.security.enabled=false
       - xpack.monitoring.enabled=false
       # 允许单节点运行，自动调整副本
       - action.auto_create_index=true
@@ -287,7 +287,7 @@ services:
       # 不使用环境变量设置 ES 地址，完全使用配置文件
       # ELASTICSEARCH_HOSTS 已在 kibana.yml 中配置
       # 关闭安全认证（和 ES 保持一致，ES 关了这里也关）
-      - xpack.security.enabled=false
+      - xpack.org.lix.mycatdemo.security.enabled=false
       # 中文界面（可选，默认英文）
       - I18N_LOCALE=zh-CN
       # 服务器名称

@@ -10,7 +10,7 @@
 ### 二、`AuthenticationManager`/`ProviderManager` 的核心使用场景
 #### 场景1：默认用法（框架自动配置，无需手动写）
 Spring Security 会自动配置 `ProviderManager` 作为默认的 `AuthenticationManager`，并根据你的依赖/配置自动注册对应的 `AuthenticationProvider`：
-- 引入 `spring-boot-starter-security` → 自动注册 `DaoAuthenticationProvider`（处理表单登录/HTTP Basic 认证）；
+- 引入 `spring-boot-starter-org.lix.mycatdemo.security` → 自动注册 `DaoAuthenticationProvider`（处理表单登录/HTTP Basic 认证）；
 - 引入 `spring-boot-starter-oauth2-client` → 自动注册 `OAuth2LoginAuthenticationProvider`（处理OAuth2登录）；
 
 此时你无需手动创建 `AuthenticationManager`，框架会在认证过滤器（如 `UsernamePasswordAuthenticationFilter`）中自动使用它。
@@ -20,12 +20,12 @@ Spring Security 会自动配置 `ProviderManager` 作为默认的 `Authenticatio
 
 ##### 步骤1：定义自定义 `AuthenticationProvider`（短信验证码认证）
 ```java
-import org.springframework.security.authentication.AuthenticationProvider;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.org.lix.mycatdemo.security.authentication.AuthenticationProvider;
+import org.springframework.org.lix.mycatdemo.security.authentication.BadCredentialsException;
+import org.springframework.org.lix.mycatdemo.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.org.lix.mycatdemo.security.core.Authentication;
+import org.springframework.org.lix.mycatdemo.security.core.AuthenticationException;
+import org.springframework.org.lix.mycatdemo.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
@@ -68,13 +68,13 @@ public class SmsCodeAuthenticationProvider implements AuthenticationProvider {
 ##### 步骤2：配置 `ProviderManager` 作为 `AuthenticationManager`
 ```java
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.org.lix.mycatdemo.security.authentication.AuthenticationManager;
+import org.springframework.org.lix.mycatdemo.security.authentication.ProviderManager;
+import org.springframework.org.lix.mycatdemo.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetailsService;
+import org.springframework.org.lix.mycatdemo.security.crypto.password.PasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.web.SecurityFilterChain;
 import org.springframework.stereotype.Configuration;
 
 import java.util.Arrays;
@@ -154,10 +154,10 @@ public class SecurityConfig {
 #### 场景3：手动调用 `AuthenticationManager`（非过滤器场景）
 如果你的认证不是通过 Spring Security 过滤器（比如小程序后端、API 接口认证），可以直接注入 `AuthenticationManager` 手动调用：
 ```java
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.org.lix.mycatdemo.security.authentication.AuthenticationManager;
+import org.springframework.org.lix.mycatdemo.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.org.lix.mycatdemo.security.core.Authentication;
+import org.springframework.org.lix.mycatdemo.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;

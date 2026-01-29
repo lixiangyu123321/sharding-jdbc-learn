@@ -56,7 +56,7 @@ public class ShardingJDBCListener {
     @Value("${sharding-JDBC.group}")
     private String group;
 
-    @EventListener
+    //@EventListener
     public void onContextRefreshed(ContextRefreshedEvent event) {
         // 确保只执行一次（避免父子容器重复执行）
         if (event.getApplicationContext().getParent() != null) {

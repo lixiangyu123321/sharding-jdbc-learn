@@ -111,12 +111,12 @@ graph TD
 #### 场景1：无状态方案（TokenBasedRememberMeServices）
 ```java
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetailsService;
+import org.springframework.org.lix.mycatdemo.security.crypto.password.PasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.web.SecurityFilterChain;
+import org.springframework.org.lix.mycatdemo.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 
 @EnableWebSecurity
 public class SecurityConfig {
@@ -171,13 +171,13 @@ public class SecurityConfig {
 #### 场景2：有状态方案（PersistentTokenBasedRememberMeServices）
 ```java
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
-import org.springframework.security.web.authentication.rememberme.PersistentTokenBasedRememberMeServices;
-import org.springframework.security.web.authentication.rememberme.PersistentTokenRepository;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetailsService;
+import org.springframework.org.lix.mycatdemo.security.web.SecurityFilterChain;
+import org.springframework.org.lix.mycatdemo.security.web.authentication.rememberme.JdbcTokenRepositoryImpl;
+import org.springframework.org.lix.mycatdemo.security.web.authentication.rememberme.PersistentTokenBasedRememberMeServices;
+import org.springframework.org.lix.mycatdemo.security.web.authentication.rememberme.PersistentTokenRepository;
 
 import javax.sql.DataSource;
 

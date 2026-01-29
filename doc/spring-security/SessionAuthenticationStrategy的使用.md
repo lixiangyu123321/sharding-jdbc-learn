@@ -32,10 +32,10 @@ Spring Security 5.x+ 中，**默认已经启用 `ChangeSessionIdAuthenticationSt
 
 ```java
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.session.SessionFixationProtectionStrategy;
-import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.org.lix.mycatdemo.security.web.SecurityFilterChain;
+import org.springframework.org.lix.mycatdemo.security.web.authentication.session.SessionFixationProtectionStrategy;
+import org.springframework.org.lix.mycatdemo.security.web.authentication.session.SessionAuthenticationStrategy;
 
 @Configuration
 public class SecurityConfig {
@@ -74,14 +74,14 @@ public class SecurityConfig {
 
 ```java
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.session.SessionRegistry;
-import org.springframework.security.core.session.SessionRegistryImpl;
-import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.session.ConcurrentSessionControlAuthenticationStrategy;
-import org.springframework.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
-import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
-import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.org.lix.mycatdemo.security.core.session.SessionRegistry;
+import org.springframework.org.lix.mycatdemo.security.core.session.SessionRegistryImpl;
+import org.springframework.org.lix.mycatdemo.security.web.SecurityFilterChain;
+import org.springframework.org.lix.mycatdemo.security.web.authentication.session.ConcurrentSessionControlAuthenticationStrategy;
+import org.springframework.org.lix.mycatdemo.security.web.authentication.session.RegisterSessionAuthenticationStrategy;
+import org.springframework.org.lix.mycatdemo.security.web.authentication.session.CompositeSessionAuthenticationStrategy;
+import org.springframework.org.lix.mycatdemo.security.web.authentication.session.SessionAuthenticationStrategy;
 
 import java.util.Arrays;
 
@@ -155,8 +155,8 @@ public class SessionSecurityConfig {
 如果内置策略满足不了需求（比如“登录成功后给 Session 加自定义属性”“根据用户角色设置不同的 Session 超时时间”），可以自定义实现：
 
 ```java
-import org.springframework.security.core.Authentication;
-import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
+import org.springframework.org.lix.mycatdemo.security.core.Authentication;
+import org.springframework.org.lix.mycatdemo.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.stereotype.Component;
 
 import jakarta.servlet.http.HttpServletRequest;

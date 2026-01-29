@@ -13,13 +13,13 @@
 通过 `UserDetailsService` 给用户分配角色（框架会自动封装为 `SimpleGrantedAuthority`）：
 ```java
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.User;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetails;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetailsService;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.org.lix.mycatdemo.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.crypto.password.PasswordEncoder;
 
 @Configuration
 public class SecurityConfig {
@@ -64,8 +64,8 @@ public class SecurityConfig {
 在 `SecurityFilterChain` 中，通过角色/权限控制接口访问：
 ```java
 import org.springframework.context.annotation.Bean;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.org.lix.mycatdemo.security.web.SecurityFilterChain;
 
 @Configuration
 public class WebSecurityConfig {
@@ -107,7 +107,7 @@ public class WebSecurityConfig {
 #### 步骤1：开启方法级安全注解
 ```java
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 // 开启方法级授权注解（prePostEnabled=true 启用@PreAuthorize/@PostAuthorize）
 @Configuration
@@ -118,7 +118,7 @@ public class MethodSecurityConfig {
 
 #### 步骤2：在 Controller/Service 中使用注解授权
 ```java
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.org.lix.mycatdemo.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

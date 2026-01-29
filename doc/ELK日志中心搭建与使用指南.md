@@ -148,7 +148,7 @@ es-node1:
     - discovery.seed_hosts=es-node2
     - cluster.initial_master_nodes=es-node1,es-node2
     - ES_JAVA_OPTS=-Xms512m -Xmx512m
-    - xpack.security.enabled=false
+    - xpack.org.lix.mycatdemo.security.enabled=false
     - xpack.monitoring.enabled=false
   volumes:
     - es-data-1:/usr/share/elasticsearch/data
@@ -172,7 +172,7 @@ es-node2:
     - discovery.seed_hosts=es-node1
     - cluster.initial_master_nodes=es-node1,es-node2
     - ES_JAVA_OPTS=-Xms512m -Xmx512m
-    - xpack.security.enabled=false
+    - xpack.org.lix.mycatdemo.security.enabled=false
     - xpack.monitoring.enabled=false
   volumes:
     - es-data-2:/usr/share/elasticsearch/data
@@ -187,7 +187,7 @@ es-node2:
 | `discovery.seed_hosts` | 集群发现种子节点列表 |
 | `cluster.initial_master_nodes` | 初始主节点列表 |
 | `ES_JAVA_OPTS` | JVM 参数，设置堆内存大小 |
-| `xpack.security.enabled` | 是否启用安全认证（开发环境建议关闭） |
+| `xpack.org.lix.mycatdemo.security.enabled` | 是否启用安全认证（开发环境建议关闭） |
 
 ### 3.3 验证 ES 集群
 
@@ -491,7 +491,7 @@ kibana:
     - kibana-data:/usr/share/kibana/data
   environment:
     - ELASTICSEARCH_HOSTS=http://es-node1:9200
-    - xpack.security.enabled=false
+    - xpack.org.lix.mycatdemo.security.enabled=false
     - I18N_LOCALE=zh-CN
     - SERVER_NAME=kibana
     - SERVER_HOST=0.0.0.0

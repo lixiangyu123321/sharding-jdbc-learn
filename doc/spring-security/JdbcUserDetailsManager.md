@@ -14,7 +14,7 @@
 <!-- Spring Security核心（必选） -->
 <dependency>
     <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-starter-security</artifactId>
+    <artifactId>spring-boot-starter-org.lix.mycatdemo.security</artifactId>
 </dependency>
 <!-- Spring JDBC（JdbcUserDetailsManager依赖，必选） -->
 <dependency>
@@ -54,14 +54,14 @@ spring:
 ```java
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
-import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.org.lix.mycatdemo.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.User;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetails;
+import org.springframework.org.lix.mycatdemo.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.crypto.password.PasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.org.lix.mycatdemo.security.web.SecurityFilterChain;
 import javax.sql.DataSource;
 
 @Configuration
@@ -158,10 +158,10 @@ public class SecurityConfig {
 注入`JdbcUserDetailsManager`和`PasswordEncoder`，直接调用内置方法实现用户管理，无需手写数据库操作：
 ```java
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.JdbcUserDetailsManager;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.User;
+import org.springframework.org.lix.mycatdemo.security.core.userdetails.UserDetails;
+import org.springframework.org.lix.mycatdemo.security.crypto.password.PasswordEncoder;
+import org.springframework.org.lix.mycatdemo.security.provisioning.JdbcUserDetailsManager;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
