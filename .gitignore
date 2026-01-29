@@ -1,5 +1,30 @@
-HELP.md
+# Compiled class file
+*.class
+
+# Log file
+*.log
+logs/
+*.log.*
+
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Maven
 target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
 .mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
@@ -13,11 +38,17 @@ target/
 .springBeans
 .sts4-cache
 
-### IntelliJ IDEA ###
-.idea
+
+
+# IDE
+.idea/
 *.iws
 *.iml
 *.ipr
+.vscode/
+*.swp
+*.swo
+*~
 
 ### NetBeans ###
 /nbproject/private/
@@ -29,5 +60,5 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
-.vscode/
+# 日志目录（不提交日志文件）
+logs/
