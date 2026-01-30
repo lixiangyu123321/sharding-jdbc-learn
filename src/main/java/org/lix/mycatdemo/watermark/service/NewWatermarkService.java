@@ -79,6 +79,7 @@ public class NewWatermarkService implements InitializingBean {
      */
     private static final String bizCode = "3100";
 
+
     @Override
     public void afterPropertiesSet() throws Exception {
         InputStream inputStream = WatermarkService.class.getClassLoader().getResourceAsStream(DEFAULT_WATERMARK_IMAGE_PATH);
