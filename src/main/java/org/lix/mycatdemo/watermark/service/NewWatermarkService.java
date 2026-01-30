@@ -9,20 +9,18 @@ import net.coobird.thumbnailator.geometry.Positions;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.Resource;
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.ImageWriter;
+import javax.imageio.metadata.IIOMetadata;
+import javax.imageio.stream.ImageInputStream;
+import javax.imageio.stream.ImageOutputStream;
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -138,18 +136,48 @@ public class NewWatermarkService implements InitializingBean {
      */
     private void addImageWatermark2Image(InputStream inputStream, OutputStream outputStream, String fileExt) throws Exception {
         log.info("开始执行加水印");
-        BufferedImage sourceImage = ImageIO.read(inputStream);
-        if (sourceImage == null) {
-            log.error("源图读取失败");
-            throw new RuntimeException("源图读取失败");
+        try(ImageInputStream iis = ImageIO.createImageInputStream(inputStream)) {
+            Iterator<ImageReader> readers = ImageIO.getImageReaders(iis);
+
+            if (readers.hasNext()) {
+                ImageReader reader = readers.next();
+                reader.setInput(iis);
+
+                // 读取元数据
+                IIOMetadata metadata = reader.getImageMetadata(0);
+
+                // 读取源图
+                BufferedImage sourceImage = reader.read(0);
+                if (sourceImage == null) {
+                    log.error("源图读取失败");
+                    throw new RuntimeException("源图读取失败");
+                }
+
+                // 缩放水印图片
+                BufferedImage watermarkImage =  scaleWatermarkImage(DEFAULT_WATERMARK_IMAGE, sourceImage, WATERMARK_SCALE_RATIO);
+                if (watermarkImage == null) {
+                    log.error("水印图片损坏，无法读取或缩放");
+                    throw new RuntimeException("水印图片损坏，无法读取或缩放");
+                }
+                ImageWriter writer = ImageIO.getImageWritersByFormatName(fileExt).next();
+
+                BufferedImage processedImage = addImageWatermark(sourceImage, outputStream, watermarkImage, fileExt);
+
+                try (ImageOutputStream ios = ImageIO.createImageOutputStream(outputStream)) {
+                    writer.setOutput(ios);
+
+                    // 如果有元数据，尝试写入
+                    if (metadata != null) {
+                        writer.write(null, new IIOImage(processedImage, null, metadata), null);
+                    } else {
+                        writer.write(processedImage);
+                    }
+                }
+
+                writer.dispose();
+                reader.dispose();
+            }
         }
-        // 缩放水印图片
-        BufferedImage watermarkImage =  scaleWatermarkImage(DEFAULT_WATERMARK_IMAGE, sourceImage, WATERMARK_SCALE_RATIO);
-        if (watermarkImage == null) {
-            log.error("水印图片损坏，无法读取或缩放");
-            throw new RuntimeException("水印图片损坏，无法读取或缩放");
-        }
-        addImageWatermark(sourceImage, outputStream, watermarkImage, fileExt);
     }
 
 
@@ -180,22 +208,22 @@ public class NewWatermarkService implements InitializingBean {
     /**
      * 基于Thumbnails添加图片水印
      */
-    private void addImageWatermark(BufferedImage sourceImage,
-                                   OutputStream outputStream,
-                                   BufferedImage watermarkImage,
-                                   String fileExt) throws IOException {
+    private BufferedImage addImageWatermark(BufferedImage sourceImage,
+                                            OutputStream outputStream,
+                                            BufferedImage watermarkImage,
+                                            String fileExt) throws IOException {
         int sourceWidth = sourceImage.getWidth();
         int sourceHeight = sourceImage.getHeight();
 
         int marginX = Math.min((int) Math.ceil(sourceWidth * 0.01f), 20);
         int marginY = Math.min((int) Math.ceil(sourceHeight * 0.01f), 20);
         int margin = Math.min(marginY, marginX);
-        Thumbnails.of(sourceImage)
+        return Thumbnails.of(sourceImage)
                 .size(sourceImage.getWidth(), sourceImage.getHeight())
                 .watermark(WATERMARK_POSITION, watermarkImage, DEFAULT_ALPHA, margin)
                 .outputQuality(1.0f)
                 .outputFormat(fileExt)
-                .toOutputStream(outputStream);
+                .asBufferedImage();
     }
 
     /**
