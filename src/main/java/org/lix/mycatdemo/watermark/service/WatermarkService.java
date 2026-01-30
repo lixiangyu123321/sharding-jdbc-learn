@@ -517,8 +517,8 @@ public class WatermarkService implements InitializingBean, DisposableBean {
         int watermarkHeight = watermarkImage.getHeight();
 
         int x = 0, y = 0;
-        int marginX = Math.min((int) Math.ceil(watermarkWidth * 0.01f), 20);
-        int marginY = Math.min((int) Math.ceil(watermarkHeight * 0.01f), 20);
+        int marginX = Math.min((int) Math.ceil(sourceWidth * 0.01f), 20);
+        int marginY = Math.min((int) Math.ceil(sourceHeight * 0.01f), 20);
         String pos = position == null ? "RIGHT_BOTTOM" : position.toUpperCase();
 
         switch (pos) {
