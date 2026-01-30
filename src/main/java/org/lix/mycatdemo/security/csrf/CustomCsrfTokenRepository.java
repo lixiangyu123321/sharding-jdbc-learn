@@ -19,7 +19,7 @@ public class CustomCsrfTokenRepository implements CsrfTokenRepository {
     }
 
     /**
-     * 将CSRF token令牌传回前端，并存到服务端某个地方
+     * 将CSRF token持久化存储
      */
     @Override
     public void saveToken(CsrfToken token, HttpServletRequest request, HttpServletResponse response) {
@@ -27,7 +27,7 @@ public class CustomCsrfTokenRepository implements CsrfTokenRepository {
     }
 
     /**
-     * 从请求中加载token
+     * 从仓库中加载csrfToken
      */
     @Override
     public CsrfToken loadToken(HttpServletRequest request) {
