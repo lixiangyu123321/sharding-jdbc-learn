@@ -2,10 +2,16 @@ spring:
   application:
     name: dubbo-consumer
 
+  cloud:
+    config:
+      enabled: false
+
 # Dubbo 配置
 dubbo:
   application:
     name: dubbo-consumer
+    qos-host: 127.0.0.1
+    qos-port: 22223
   registry:
     address: nacos://localhost:8848
   consumer:
