@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.lix</groupId>
+        <artifactId>provider</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>provider-web</artifactId>
+    <packaging>jar</packaging>
+    <name>provider-web</name>
+    <description>Provider Web 模块（Controller、DTO、响应封装等）</description>
+
+    <dependencies>
+        <!-- Spring Boot Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Boot JDBC -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+
+        <!-- Spring Cloud Config -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-config</artifactId>
+        </dependency>
+
+        <!-- Dubbo Spring Boot Starter -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- Dubbo 注册中心 - Nacos -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo-registry-nacos</artifactId>
+        </dependency>
+
+        <!-- Sharding-JDBC -->
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>sharding-jdbc-spring-boot-starter</artifactId>
+        </dependency>
+
+        <!-- Provider Facade 模块（接口定义） -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>provider-facade</artifactId>
+        </dependency>
+
+        <!-- Provider Common 模块 -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>provider-common</artifactId>
+        </dependency>
+
+        <!-- Provider DAO 模块 -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>provider-dao</artifactId>
+        </dependency>
+
+        <!-- Provider Integration 模块 -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>provider-integration</artifactId>
+        </dependency>
+
+        <!-- Provider Service 模块（业务逻辑） -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>provider-service</artifactId>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
+

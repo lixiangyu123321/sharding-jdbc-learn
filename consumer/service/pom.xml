@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.lix</groupId>
+        <artifactId>consumer</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>consumer-service</artifactId>
+    <packaging>jar</packaging>
+    <name>consumer-service</name>
+    <description>Consumer Service 模块（业务逻辑）</description>
+
+    <dependencies>
+        <!-- Consumer Facade 模块 -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>consumer-facade</artifactId>
+        </dependency>
+
+        <!-- Consumer Common 模块 -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>consumer-common</artifactId>
+        </dependency>
+
+        <!-- Consumer DAO 模块 -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>consumer-dao</artifactId>
+        </dependency>
+
+        <!-- Consumer Integration 模块 -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>consumer-integration</artifactId>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
+

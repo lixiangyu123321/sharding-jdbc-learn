@@ -11,85 +11,37 @@
     <groupId>org.lix</groupId>
     <artifactId>mycat-demo</artifactId>
     <version>0.0.1-SNAPSHOT</version>
+    <packaging>pom</packaging>
     <name>mycat-demo</name>
+    <description>MyCat Demo - 多模块项目，包含 Dubbo 服务提供方和消费方</description>
+
+    <modules>
+        <module>provider</module>
+        <module>consumer</module>
+    </modules>
 
     <properties>
         <java.version>8</java.version>
         <spring-cloud.version>2021.0.8</spring-cloud.version>
+        <dubbo.version>3.3.0</dubbo.version>
+        <mybatis.version>2.3.2</mybatis.version>
+        <druid.version>1.2.23</druid.version>
+        <shardingsphere.version>4.1.1</shardingsphere.version>
+        <mapper.version>4.2.3</mapper.version>
+        <mysql.version>8.0.32</mysql.version>
     </properties>
+    
+    <!-- 父 POM 中只保留公共依赖管理，不直接添加依赖 -->
     <dependencies>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-data-jdbc</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-jdbc</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-config-server</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-config</artifactId>
-        </dependency>
-
+        <!-- Lombok - 所有模块都需要 -->
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
             <optional>true</optional>
         </dependency>
-
-        <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
-            <version>8.0.32</version>
-        </dependency>
-
-        <dependency>
-            <groupId>org.mybatis.spring.boot</groupId>
-            <artifactId>mybatis-spring-boot-starter</artifactId>
-            <version>2.3.2</version>
-        </dependency>
-
-
-<!--        <dependency>-->
-<!--            <groupId>tk.mybatis</groupId>-->
-<!--            <artifactId>mapper</artifactId>-->
-<!--            <version>4.2.3</version>-->
-<!--        </dependency>-->
-
-        <dependency>
-            <groupId>tk.mybatis</groupId>
-            <artifactId>mapper-spring-boot-starter</artifactId>
-            <version>4.2.3</version>
-        </dependency>
-
-
-        <!-- Sharding-JDBC 4.x Spring Boot Starter（正确坐标） -->
-        <dependency>
-            <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>sharding-jdbc-spring-boot-starter</artifactId>
-            <version>4.1.1</version> <!-- 4.x最新稳定版，阿里云仓库必存在 -->
-        </dependency>
-
-        <!-- 如需分布式事务，补充 -->
-        <!-- Source: https://mvnrepository.com/artifact/org.apache.shardingsphere/shardingsphere-jdbc-core-spring-boot-starter -->
-<!--        <dependency>-->
-<!--            <groupId>org.apache.shardingsphere</groupId>-->
-<!--            <artifactId>shardingsphere-jdbc-core-spring-boot-starter</artifactId>-->
-<!--            <version>5.2.1</version>-->
-<!--            <scope>compile</scope>-->
-<!--        </dependency>-->
-
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>druid-spring-boot-starter</artifactId>
-            <version>1.2.23</version>
-        </dependency>
     </dependencies>
+
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -98,6 +50,120 @@
                 <version>${spring-cloud.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!-- Dubbo BOM - 统一管理 Dubbo 相关依赖版本 -->
+            <dependency>
+                <groupId>org.apache.dubbo</groupId>
+                <artifactId>dubbo-bom</artifactId>
+                <version>${dubbo.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- MySQL 驱动 -->
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <version>${mysql.version}</version>
+            </dependency>
+            <!-- MyBatis Spring Boot Starter -->
+            <dependency>
+                <groupId>org.mybatis.spring.boot</groupId>
+                <artifactId>mybatis-spring-boot-starter</artifactId>
+                <version>${mybatis.version}</version>
+            </dependency>
+            <!-- Druid Spring Boot Starter -->
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>druid-spring-boot-starter</artifactId>
+                <version>${druid.version}</version>
+            </dependency>
+            <!-- Sharding-JDBC -->
+            <dependency>
+                <groupId>org.apache.shardingsphere</groupId>
+                <artifactId>sharding-jdbc-spring-boot-starter</artifactId>
+                <version>${shardingsphere.version}</version>
+            </dependency>
+            <!-- Mapper Spring Boot Starter -->
+            <dependency>
+                <groupId>tk.mybatis</groupId>
+                <artifactId>mapper-spring-boot-starter</artifactId>
+                <version>${mapper.version}</version>
+            </dependency>
+            
+            <!-- ========== Provider 子模块版本管理 ========== -->
+            <!-- Provider Facade -->
+            <dependency>
+                <groupId>org.lix</groupId>
+                <artifactId>provider-facade</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- Provider Common -->
+            <dependency>
+                <groupId>org.lix</groupId>
+                <artifactId>provider-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- Provider DAO -->
+            <dependency>
+                <groupId>org.lix</groupId>
+                <artifactId>provider-dao</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- Provider Integration -->
+            <dependency>
+                <groupId>org.lix</groupId>
+                <artifactId>provider-integration</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- Provider Web -->
+            <dependency>
+                <groupId>org.lix</groupId>
+                <artifactId>provider-web</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- Provider Service -->
+            <dependency>
+                <groupId>org.lix</groupId>
+                <artifactId>provider-service</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            
+            <!-- ========== Consumer 子模块版本管理 ========== -->
+            <!-- Consumer Facade -->
+            <dependency>
+                <groupId>org.lix</groupId>
+                <artifactId>consumer-facade</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- Consumer Common -->
+            <dependency>
+                <groupId>org.lix</groupId>
+                <artifactId>consumer-common</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- Consumer DAO -->
+            <dependency>
+                <groupId>org.lix</groupId>
+                <artifactId>consumer-dao</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- Consumer Integration -->
+            <dependency>
+                <groupId>org.lix</groupId>
+                <artifactId>consumer-integration</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- Consumer Web -->
+            <dependency>
+                <groupId>org.lix</groupId>
+                <artifactId>consumer-web</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <!-- Consumer Service -->
+            <dependency>
+                <groupId>org.lix</groupId>
+                <artifactId>consumer-service</artifactId>
+                <version>${project.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

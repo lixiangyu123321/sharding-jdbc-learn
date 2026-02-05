@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.lix</groupId>
+        <artifactId>provider</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>provider-service</artifactId>
+    <packaging>jar</packaging>
+    <name>provider-service</name>
+    <description>Dubbo 服务提供方实现模块</description>
+
+    <dependencies>
+        <!-- Provider Facade 模块（接口定义） -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>provider-facade</artifactId>
+        </dependency>
+
+        <!-- Provider Common 模块 -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>provider-common</artifactId>
+        </dependency>
+
+        <!-- Provider DAO 模块 -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>provider-dao</artifactId>
+        </dependency>
+
+        <!-- Provider Integration 模块 -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>provider-integration</artifactId>
+        </dependency>
+
+        <!-- Spring 注解支持（provided scope，仅编译时需要，运行时由 web 模块提供） -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Dubbo 注解支持（provided scope，仅编译时需要，运行时由 web 模块提供） -->
+        <dependency>
+            <groupId>org.apache.dubbo</groupId>
+            <artifactId>dubbo</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
+

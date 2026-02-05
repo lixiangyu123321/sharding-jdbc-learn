@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.lix</groupId>
+        <artifactId>consumer</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>consumer-facade</artifactId>
+    <packaging>jar</packaging>
+    <name>consumer-facade</name>
+    <description>Consumer Facade 模块（Consumer 内部接口定义）</description>
+
+    <dependencies>
+        <!-- Provider Facade 模块（Dubbo 服务接口） -->
+        <dependency>
+            <groupId>org.lix</groupId>
+            <artifactId>provider-facade</artifactId>
+        </dependency>
+
+        <!-- Lombok -->
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+    </dependencies>
+
+</project>
+
