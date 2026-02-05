@@ -1,0 +1,63 @@
+filebeat.inputs:
+  # 应用日志输入
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/app/*.log
+      - /var/log/app/**/*.log
+    fields:
+      log_type: application
+      environment: production
+    fields_under_root: false
+    multiline.pattern: '^\d{4}-\d{2}-\d{2}'
+    multiline.negate: true
+    multiline.match: after
+    exclude_lines: ['^DEBUG']
+    
+  # Spring Boot 日志输入
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/app/spring-boot/*.log
+    fields:
+      log_type: spring-boot
+      environment: production
+    fields_under_root: false
+    multiline.pattern: '^\d{4}-\d{2}-\d{2}'
+    multiline.negate: true
+    multiline.match: after
+
+# 处理配置
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_docker_metadata: ~
+  - add_kubernetes_metadata: ~
+
+# 输出到 Logstash
+output.logstash:
+  hosts: ["logstash:5044"]
+  # 负载均衡
+  loadbalance: true
+  # 压缩
+  compression_level: 3
+
+# 日志配置
+logging.level: info
+logging.to_files: true
+logging.files:
+  path: /var/log/filebeat
+  name: filebeat
+  keepfiles: 7
+  permissions: 0644
+
+# 设置模板
+setup.template.settings:
+  index.number_of_shards: 1
+  index.codec: best_compression
+
+# 设置 ILM（索引生命周期管理）
+setup.ilm.enabled: true
+setup.ilm.rollover_alias: "logs"
+setup.ilm.pattern: "logs-*"
+

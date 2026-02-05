@@ -1,0 +1,22 @@
+server.port: 5601
+server.host: "0.0.0.0"
+
+# Elasticsearch 连接配置
+# 标准 YAML 数组格式（每个 URL 用引号包裹）
+elasticsearch.hosts:
+  - "http://es-node1:9200"
+  - "http://es-node2:9200"
+
+# ES 连接超时和重试配置
+elasticsearch.requestTimeout: 300000
+elasticsearch.pingTimeout: 60000
+
+# 完全禁用安全功能（ES 端已禁用，Kibana 会自动检测）
+xpack.security.enabled: false
+
+# 中文界面
+i18n.locale: "zh-CN"
+
+# 优化启动配置
+server.maxPayload: 1048576
+server.shutdownTimeout: 5s
