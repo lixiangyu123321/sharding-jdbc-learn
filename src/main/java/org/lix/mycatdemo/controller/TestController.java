@@ -14,10 +14,6 @@ public class TestController {
     private static final String DB_USER = "root";
     private static final String DB_PASSWORD = "123456";
 
-    @Autowired
-    private DataSource dataSource;
-
-
     @GetMapping
     public void test(){
         Connection conn = null;
