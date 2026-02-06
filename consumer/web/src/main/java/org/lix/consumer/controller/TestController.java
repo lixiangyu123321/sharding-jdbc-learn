@@ -22,6 +22,7 @@ public class TestController {
         String ans = testService.guessWhoAmI(name);
         long costTime = System.currentTimeMillis() - start;
         log.info("cost time: " + costTime);
+
         return ans;
     }
 }

@@ -17,6 +17,14 @@ dubbo:
   consumer:
     timeout: 3000
     retries: 0
+# 预热功能
+#  provider:
+#    warmup: 120000
+#    weight: 100
+
+# 服务端，服务延迟注册
+#  provider:
+#    delay: 3000
 
 # 服务端口
 server:
