@@ -27,5 +27,22 @@
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
+
+    <build>
+        <plugins>
+            <!-- Spring Boot Maven Plugin -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <jvmArguments>
+                        -javaagent:D:\tools\skywalking-agent\skywalking-agent-consumer\skywalking-agent.jar
+                        -Dskywalking.agent.service_name=${project.artifactId}
+                        -Dskywalking.collector.backend_service=127.0.0.1:11800
+                    </jvmArguments>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
 

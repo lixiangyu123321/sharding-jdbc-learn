@@ -66,6 +66,12 @@ volumes:
       type: none
       o: bind
       device: E:\docker-data\nacos
+  skywalking-oap-data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: E:\docker-data\skywalking\oap
   kibana-data:
     driver: local
     driver_opts:
@@ -202,15 +208,13 @@ services:
       - discovery.seed_hosts=es-node2
       - cluster.initial_master_nodes=es-node1,es-node2
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - xpack.org.lix.mycatdemo.security.enabled=false
+      - xpack.security.enabled=false
       - xpack.monitoring.enabled=false
       # 允许单节点运行，自动调整副本
       - action.auto_create_index=true
       - cluster.routing.allocation.disk.threshold_enabled=false
       # 分片分配相关配置
       - cluster.routing.allocation.enable=all
-      # 设置默认副本数（适用于测试环境）
-      - index.number_of_replicas=0
       # 允许在 yellow 状态下运行
       - cluster.routing.allocation.node_concurrent_recoveries=2
     volumes:
@@ -243,15 +247,13 @@ services:
       - discovery.seed_hosts=es-node1
       - cluster.initial_master_nodes=es-node1,es-node2
       - ES_JAVA_OPTS=-Xms512m -Xmx512m
-      - xpack.org.lix.mycatdemo.security.enabled=false
+      - xpack.security.enabled=false
       - xpack.monitoring.enabled=false
       # 允许单节点运行，自动调整副本
       - action.auto_create_index=true
       - cluster.routing.allocation.disk.threshold_enabled=false
       # 分片分配相关配置
       - cluster.routing.allocation.enable=all
-      # 设置默认副本数（适用于测试环境）
-      - index.number_of_replicas=0
       # 允许在 yellow 状态下运行
       - cluster.routing.allocation.node_concurrent_recoveries=2
     volumes:
@@ -422,3 +424,46 @@ services:
     privileged: true
     depends_on:
       - mysql-master
+
+  # 13. SkyWalking OAP Server
+  skywalking-oap:
+    image: apache/skywalking-oap-server:9.7.0
+    container_name: skywalking-oap
+    restart: always
+    networks:
+      - docker-cluster-network
+    ports:
+      - "11800:11800"  # gRPC 端口
+      - "12800:12800"  # HTTP 端口
+    environment:
+      - SW_STORAGE=elasticsearch
+      - SW_STORAGE_ES_CLUSTER_NODES=es-node1:9200,es-node2:9200
+      - SW_HEALTH_CHECKER=default
+      - TZ=Asia/Shanghai
+      - JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - skywalking-oap-data:/skywalking
+    depends_on:
+      - es-node1
+      - es-node2
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:12800/v3/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # 14. SkyWalking UI
+  skywalking-ui:
+    image: apache/skywalking-ui:9.7.0
+    container_name: skywalking-ui
+    restart: always
+    networks:
+      - docker-cluster-network
+    ports:
+      - "18080:8080"
+    environment:
+      - SW_OAP_ADDRESS=http://skywalking-oap:12800
+      - TZ=Asia/Shanghai
+    depends_on:
+      - skywalking-oap

@@ -33,6 +33,7 @@ dubbo:
     name: dubbo-provider
   registry:
     address: nacos://localhost:8848
+    
   protocol:
     name: tri
     port: -1
